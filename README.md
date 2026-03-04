@@ -22,7 +22,7 @@ ResumeBar is built to make that flow simple:
 - [ ] One-click resume: `claude --resume <session-id>`
 - [ ] Terminal app preference (Terminal / iTerm)
 
-## Out of Scope (for MVP)
+## Out of Scope? (for MVP)
 
 - AI-generated summaries
 - Full-text search
