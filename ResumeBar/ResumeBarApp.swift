@@ -9,9 +9,19 @@ import SwiftUI
 
 @main
 struct ResumeBarApp: App {
+    @StateObject private var store = SessionStore()
+    @StateObject private var settings = AppSettings()
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra {
+            ContentView(store: store, settings: settings)
+        } label: {
+            MenuBarIcon()
+        }
+        .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView(settings: settings)
         }
     }
 }
