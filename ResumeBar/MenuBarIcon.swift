@@ -33,7 +33,7 @@ struct MenuBarIcon: View {
 
             // Underscore cursor
             if cursorVisible {
-                let cursorX = playX + playSize * 0.85 + 2.5
+                let cursorX = playX + playSize * 0.85 + 1
                 let cursorY = h * 0.15
                 let cursorWidth = h * 0.35
                 let cursorHeight = h * 0.13

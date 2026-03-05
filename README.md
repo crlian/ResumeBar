@@ -1,52 +1,82 @@
 # ResumeBar
 
-ResumeBar is a lightweight macOS menu bar app for Claude Code users.
+Resume any Claude Code session in one click from your menu bar.
 
-It lets you quickly browse past sessions by project and resume them in one click from Terminal/iTerm — without digging through folders or old terminal tabs.
+<!-- ![ResumeBar Demo](assets/demo.gif) -->
+<!-- Add a 3-5 second GIF showing: click menu bar → search → resume -->
 
 ## Why
 
-If you use Claude Code daily, context switching is painful.
-Resuming old sessions should be instant.
+If you use Claude Code daily, resuming old sessions is painful. You have to remember session IDs, dig through terminal history, or navigate `.claude/projects/` manually.
 
-ResumeBar is built to make that flow simple:
-- open from menu bar
-- find session by project
-- resume immediately
+ResumeBar puts all your sessions one click away:
 
-## MVP Scope
+- **Open from menu bar** — always accessible, never in your way
+- **Find by project** — sessions grouped and searchable by project name
+- **Resume instantly** — opens your terminal and runs `claude --resume` for you
 
-- [x] macOS menu bar app (MenuBarExtra)
-- [ ] List local Claude Code sessions by project
-- [ ] Show recent sessions with timestamp
-- [ ] One-click resume: `claude --resume <session-id>`
-- [ ] Terminal app preference (Terminal / iTerm)
+## Features
 
-## Out of Scope? (for MVP)
+- **Menu bar app** — lives in your macOS menu bar, zero window management
+- **Project browser** — all Claude Code projects with session counts and last activity
+- **Session list** — sorted by recency, with first-message preview
+- **Chat preview** — expand any session to peek at the conversation
+- **Search** — filter projects and sessions as you type
+- **One-click resume** — launches `claude --resume <session-id>` in your terminal
+- **Terminal support** — works with Terminal, iTerm2, and Ghostty
+- **Auto-refresh** — watches `~/.claude/projects/` for changes via file system events
+- **Settings** — configure terminal app, max sessions shown, refresh interval
 
-- AI-generated summaries
-- Full-text search
-- Analytics
-- Windows/Linux support
+## Screenshots
 
-## How it works (planned)
+<!-- Add screenshots here -->
+<!-- ![Projects List](assets/projects.png) -->
+<!-- ![Sessions Detail](assets/sessions.png) -->
 
-ResumeBar reads local Claude session files from:
+## Installation
 
-`~/.claude/projects/<path-encoded>/<session-id>.jsonl`
+### Download
 
-Then it:
-1. groups sessions by project
-2. shows recent entries in menu bar dropdown
-3. opens terminal and runs `claude --resume <id>`
+Grab the latest `.zip` from [GitHub Releases](../../releases) and drag `ResumeBar.app` to your Applications folder.
 
-## Status
+> **Note:** Since the app is not notarized yet, you'll need to right-click → Open the first time.
 
-🚧 Early build in progress.
+### Build from source
 
-## Feedback welcome
+Requires Xcode 26+ and macOS 26+.
 
-If you use Claude Code and this would save you time, open an issue or drop feedback.
+```bash
+git clone https://github.com/crlian/ResumeBar.git
+cd ResumeBar
+open ResumeBar.xcodeproj
+```
+
+Build and run with `Cmd+R`.
+
+## How it works
+
+ResumeBar reads Claude Code session files from:
+
+```
+~/.claude/projects/<project-path>/<session-id>.jsonl
+```
+
+It parses each `.jsonl` file to extract the first user message as the session title, groups sessions by project, and watches the directory for new sessions.
+
+When you click Resume, it opens a new terminal window, `cd`s to the project directory, and runs `claude --resume <session-id>`.
+
+## Requirements
+
+- macOS 26 or later
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## License
+
+MIT
 
 ---
 
