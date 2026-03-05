@@ -8,8 +8,16 @@ import Foundation
 
 class SessionStore: ObservableObject {
     @Published var projects: [Project] = []
-    @Published var projectSearchText: String = ""
-    @Published var sessionSearchText: String = ""
+    @Published var searchText: String = ""
+    @Published var hasMore: Bool = false
+
+    let aliasStore: AliasStore
+
+    func displayTitle(for session: Session) -> String {
+        aliasStore.alias(for: session.id) ?? session.title
+    }
+
+    private var sessionLoadLimit: Int = 50
 
     private let iso8601: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
@@ -21,28 +29,74 @@ class SessionStore: ObservableObject {
     private var fileDescriptor: Int32 = -1
     private var chatPreviewCache: [String: ([ChatMessage], Int)] = [:]
 
-    var filteredProjects: [Project] {
-        if projectSearchText.isEmpty {
-            return projects
+    // MARK: - Computed Properties
+
+    var groupedFilteredSessions: [(project: Project, sessions: [Session])] {
+        let query = searchText.lowercased()
+        var results: [(project: Project, sessions: [Session])] = []
+
+        for project in projects {
+            if query.isEmpty {
+                results.append((project, project.sessions))
+            } else {
+                let projectMatches = project.displayName.lowercased().contains(query)
+                let matchingSessions = project.sessions.filter {
+                    displayTitle(for: $0).lowercased().contains(query)
+                        || $0.title.lowercased().contains(query)
+                        || aliasStore.alias(for: $0.id)?.lowercased().contains(query) == true
+                }
+                if projectMatches {
+                    results.append((project, project.sessions))
+                } else if !matchingSessions.isEmpty {
+                    results.append((project, matchingSessions))
+                }
+            }
         }
-        let query = projectSearchText.lowercased()
-        return projects.filter {
-            $0.displayName.lowercased().contains(query)
-        }
+
+        return results
     }
 
-    func filteredSessions(for projectId: String) -> [Session] {
-        guard let project = projects.first(where: { $0.id == projectId }) else {
-            return []
+    var recentSessions: [(project: Project, session: Session)] {
+        var all: [(Project, Session)] = []
+        for project in projects {
+            for session in project.sessions {
+                all.append((project, session))
+            }
         }
-        if sessionSearchText.isEmpty {
-            return project.sessions
-        }
-        let query = sessionSearchText.lowercased()
-        return project.sessions.filter {
-            $0.title.lowercased().contains(query)
-        }
+        all.sort { $0.1.lastActivity > $1.1.lastActivity }
+        return Array(all.prefix(5))
     }
+
+    func pinnedSessions(pinStore: PinStore) -> [(project: Project, session: Session)] {
+        var result: [(Project, Session)] = []
+        for pinId in pinStore.pinnedIds {
+            for project in projects {
+                if let session = project.sessions.first(where: { $0.id == pinId }) {
+                    result.append((project, session))
+                    break
+                }
+            }
+        }
+        return result
+    }
+
+    var mostRecentSession: (project: Project, session: Session)? {
+        var best: (Project, Session)?
+        for project in projects {
+            for session in project.sessions {
+                if best == nil || session.lastActivity > best!.1.lastActivity {
+                    best = (project, session)
+                }
+            }
+        }
+        return best
+    }
+
+    func isRecentlyActive(_ session: Session) -> Bool {
+        -session.lastActivity.timeIntervalSinceNow < 3600
+    }
+
+    // MARK: - Chat Messages
 
     func loadChatMessages(for session: Session, limit: Int = 8) -> (messages: [ChatMessage], totalCount: Int) {
         if let cached = chatPreviewCache[session.id] {
@@ -101,7 +155,17 @@ class SessionStore: ObservableObject {
         return nil
     }
 
-    init() {
+    // MARK: - Delete
+
+    func deleteSession(_ session: Session) {
+        try? FileManager.default.removeItem(at: session.jsonlURL)
+        load()
+    }
+
+    // MARK: - Init
+
+    init(aliasStore: AliasStore) {
+        self.aliasStore = aliasStore
         load()
         startFileWatcher()
     }
@@ -156,10 +220,11 @@ class SessionStore: ObservableObject {
             options: .skipsHiddenFiles
         ) else {
             projects = []
+            hasMore = false
             return
         }
 
-        var result: [Project] = []
+        var allFiles: [(url: URL, modDate: Date, projectDir: String, displayName: String)] = []
 
         for dir in projectDirs {
             guard (try? dir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
@@ -174,29 +239,45 @@ class SessionStore: ObservableObject {
                 options: .skipsHiddenFiles
             ) else { continue }
 
-            var sessions: [Session] = []
-
             for file in files where file.pathExtension == "jsonl" {
-                guard let session = parseSession(at: file, projectPath: dirName) else { continue }
-                sessions.append(session)
+                let modDate = (try? fm.attributesOfItem(atPath: file.path)[.modificationDate] as? Date) ?? .distantPast
+                allFiles.append((file, modDate, dirName, displayName))
             }
+        }
 
-            guard !sessions.isEmpty else { continue }
+        allFiles.sort { $0.modDate > $1.modDate }
+        hasMore = allFiles.count > sessionLoadLimit
+        let filesToParse = allFiles.prefix(sessionLoadLimit)
+
+        var projectSessions: [String: (displayName: String, sessions: [Session])] = [:]
+
+        for entry in filesToParse {
+            guard let session = parseSession(at: entry.url, projectPath: entry.projectDir) else { continue }
+            var group = projectSessions[entry.projectDir] ?? (entry.displayName, [])
+            group.sessions.append(session)
+            projectSessions[entry.projectDir] = group
+        }
+
+        var result: [Project] = []
+        for (dirName, group) in projectSessions {
+            var sessions = group.sessions
             sessions.sort { $0.lastActivity > $1.lastActivity }
-
-            let projectLastActivity = sessions.first?.lastActivity ?? .distantPast
-
             result.append(Project(
                 id: dirName,
                 path: dirName,
-                displayName: displayName,
+                displayName: group.displayName,
                 sessions: sessions,
-                lastActivity: projectLastActivity
+                lastActivity: sessions.first?.lastActivity ?? .distantPast
             ))
         }
 
         result.sort { $0.lastActivity > $1.lastActivity }
         projects = result
+    }
+
+    func loadMore() {
+        sessionLoadLimit += 50
+        load()
     }
 
     private func parseSession(at url: URL, projectPath: String) -> Session? {
@@ -209,12 +290,34 @@ class SessionStore: ObservableObject {
         let fm = FileManager.default
         let lastActivity = (try? fm.attributesOfItem(atPath: url.path)[.modificationDate] as? Date) ?? Date()
 
+        var sessionModel: String?
+        var sessionTokens: Int?
+
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty,
                   let lineData = trimmed.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-                  json["type"] as? String == "user",
+                  let type = json["type"] as? String
+            else { continue }
+
+            // Extract model from first assistant message
+            if type == "assistant", sessionModel == nil,
+               let message = json["message"] as? [String: Any],
+               let model = message["model"] as? String {
+                sessionModel = model
+            }
+
+            // Extract usage tokens
+            if type == "assistant",
+               let message = json["message"] as? [String: Any],
+               let usage = message["usage"] as? [String: Any] {
+                let input = usage["input_tokens"] as? Int ?? 0
+                let output = usage["output_tokens"] as? Int ?? 0
+                sessionTokens = (sessionTokens ?? 0) + input + output
+            }
+
+            guard type == "user",
                   let message = json["message"] as? [String: Any]
             else { continue }
 
@@ -227,15 +330,19 @@ class SessionStore: ObservableObject {
             }
 
             let cwd = json["cwd"] as? String ?? ""
+            let preview = String(title.prefix(80))
 
             return Session(
                 id: sessionId,
                 title: title,
+                preview: preview,
                 timestamp: timestamp,
                 lastActivity: lastActivity,
                 projectPath: projectPath,
                 cwd: cwd,
-                jsonlURL: url
+                jsonlURL: url,
+                model: sessionModel,
+                totalTokens: sessionTokens
             )
         }
 

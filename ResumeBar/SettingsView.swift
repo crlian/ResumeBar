@@ -16,8 +16,8 @@ struct SettingsView: View {
                 Text("Ghostty").tag("Ghostty")
             }
 
-            Stepper("Sessions per project: \(settings.maxSessionsPerProject)",
-                    value: $settings.maxSessionsPerProject, in: 1...10)
+            Stepper("Recent sessions: \(settings.recentSessionCount)",
+                    value: $settings.recentSessionCount, in: 1...10)
 
             Picker("Auto-refresh", selection: $settings.autoRefreshInterval) {
                 Text("Off").tag(0)

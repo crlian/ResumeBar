@@ -8,11 +8,14 @@ import Foundation
 struct Session: Identifiable {
     let id: String
     let title: String
+    var preview: String
     let timestamp: Date
     let lastActivity: Date
     let projectPath: String
     let cwd: String
     let jsonlURL: URL
+    var model: String?
+    var totalTokens: Int?
 }
 
 struct Project: Identifiable {

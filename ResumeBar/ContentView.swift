@@ -8,95 +8,70 @@
 import SwiftUI
 
 enum NavigationScreen: Equatable {
-    case projectsList
-    case sessionsDetail(projectId: String)
+    case home
+    case projectDetail(Project)
+
+    static func == (lhs: NavigationScreen, rhs: NavigationScreen) -> Bool {
+        switch (lhs, rhs) {
+        case (.home, .home): return true
+        case (.projectDetail(let a), .projectDetail(let b)): return a.id == b.id
+        default: return false
+        }
+    }
 }
 
 struct ContentView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var settings: AppSettings
+    @ObservedObject var aliasStore: AliasStore
+    @ObservedObject var pinStore: PinStore
 
-    @State private var currentScreen: NavigationScreen = .projectsList
-    @State private var selectedProject: Project?
-    @State private var slideFromTrailing = true
-
-    private let transition: AnyTransition = .asymmetric(
-        insertion: .move(edge: .trailing),
-        removal: .move(edge: .leading)
-    )
-
-    private let reverseTransition: AnyTransition = .asymmetric(
-        insertion: .move(edge: .leading),
-        removal: .move(edge: .trailing)
-    )
+    @State private var screen: NavigationScreen = .home
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                switch currentScreen {
-                case .projectsList:
-                    ProjectsListView(store: store) { project in
-                        navigateTo(project: project)
+        ZStack {
+            switch screen {
+            case .home:
+                HomeView(
+                    store: store,
+                    pinStore: pinStore,
+                    aliasStore: aliasStore,
+                    settings: settings,
+                    onSelectProject: { project in
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            screen = .projectDetail(project)
+                        }
                     }
-                    .transition(slideFromTrailing ? reverseTransition : transition)
+                )
+                .transition(.move(edge: .leading))
 
-                case .sessionsDetail:
-                    if let project = selectedProject {
-                        SessionsDetailView(
-                            store: store,
-                            settings: settings,
-                            project: project,
-                            onBack: { navigateBack() }
-                        )
-                        .transition(slideFromTrailing ? transition : reverseTransition)
+            case .projectDetail(let project):
+                ProjectDetailView(
+                    project: project,
+                    store: store,
+                    pinStore: pinStore,
+                    aliasStore: aliasStore,
+                    settings: settings,
+                    onBack: {
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            screen = .home
+                        }
                     }
-                }
+                )
+                .transition(.move(edge: .trailing))
             }
-            .clipped()
-            .animation(.spring(response: 0.35, dampingFraction: 0.88), value: currentScreen)
-
-            // Footer
-            Divider()
-            HStack(spacing: Spacing.m) {
-                SettingsLink {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(.secondaryLabelColor))
+        }
+        .frame(width: 380)
+        .preferredColorScheme(.dark)
+        .onKeyPress(.escape) {
+            if screen != .home {
+                withAnimation(.easeOut(duration: 0.15)) {
+                    screen = .home
                 }
-                Spacer()
-                footerButton(icon: "arrow.clockwise") {
-                    store.load()
-                }
-                footerButton(icon: "xmark.circle") {
-                    NSApplication.shared.terminate(nil)
-                }
+                return .handled
             }
-            .padding(.horizontal, Spacing.l)
-            .padding(.vertical, Spacing.s)
+            NSApp.keyWindow?.close()
+            return .handled
         }
-        .frame(width: 360)
-    }
-
-    private func navigateTo(project: Project) {
-        store.sessionSearchText = ""
-        selectedProject = project
-        slideFromTrailing = true
-        currentScreen = .sessionsDetail(projectId: project.id)
-    }
-
-    private func navigateBack() {
-        store.sessionSearchText = ""
-        slideFromTrailing = false
-        currentScreen = .projectsList
-    }
-
-    @ViewBuilder
-    private func footerButton(icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundColor(Color(.secondaryLabelColor))
-        }
-        .buttonStyle(.plain)
     }
 }

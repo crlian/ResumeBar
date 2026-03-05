@@ -16,17 +16,17 @@ struct ChatPreviewView: View {
             }
 
             if totalCount > messages.count {
-                Text("··· \(totalCount - messages.count) more messages")
+                Text("\u{00B7}\u{00B7}\u{00B7} \(totalCount - messages.count) more messages")
                     .font(Theme.caption())
-                    .foregroundColor(Color(.tertiaryLabelColor))
+                    .foregroundColor(Theme.textSecondary.opacity(0.6))
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, Spacing.xs)
             }
         }
         .padding(Spacing.m)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(.controlBackgroundColor).opacity(0.5))
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.chatPreviewBg)
         )
     }
 
@@ -37,18 +37,18 @@ struct ChatPreviewView: View {
             Text(message.text)
                 .font(Theme.messageBody())
                 .lineLimit(3)
-                .foregroundColor(Color(.labelColor))
+                .foregroundColor(Theme.textPrimary)
                 .padding(.horizontal, Spacing.s)
                 .padding(.vertical, Spacing.xs)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Theme.accent.opacity(0.12))
+                        .fill(Theme.accentSubtle)
                 )
         case .assistant:
             Text(message.text)
                 .font(Theme.messageBody())
                 .lineLimit(3)
-                .foregroundColor(Color(.secondaryLabelColor))
+                .foregroundColor(Theme.textSecondary)
                 .padding(.vertical, Spacing.xs)
         }
     }
