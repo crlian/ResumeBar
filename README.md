@@ -53,7 +53,11 @@ ResumeBar puts all your sessions one click away:
 
 Grab the latest `.zip` from [GitHub Releases](../../releases) and drag `ResumeBar.app` to your Applications folder.
 
-> **Note:** Since the app is not notarized yet, you'll need to right-click → Open the first time.
+> **Note:** The app is not signed or notarized. On first launch, run this in Terminal:
+> ```bash
+> xattr -cr /Applications/ResumeBar.app
+> ```
+> After that it opens normally.
 
 ### Build from source
 
