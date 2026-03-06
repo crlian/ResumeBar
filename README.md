@@ -2,8 +2,7 @@
 
 Resume any Claude Code session in one click from your menu bar.
 
-<!-- ![ResumeBar Demo](assets/demo.gif) -->
-<!-- Add a 3-5 second GIF showing: click menu bar → search → resume -->
+![ResumeBar Demo](assets/demo.gif)
 
 ## Why
 
@@ -29,9 +28,8 @@ ResumeBar puts all your sessions one click away:
 
 ## Screenshots
 
-<!-- Add screenshots here -->
-<!-- ![Projects List](assets/projects.png) -->
-<!-- ![Sessions Detail](assets/sessions.png) -->
+![Home](assets/home.jpeg)
+![Sessions Detail](assets/sessions.png)
 
 ## Installation
 
