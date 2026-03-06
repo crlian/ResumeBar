@@ -12,6 +12,7 @@ struct SessionRowView: View {
     let displayTitle: String
     let isPinned: Bool
     let isSelected: Bool
+    var onSelect: (() -> Void)?
     var onResume: () -> Void
     var onTogglePin: () -> Void
     var onDelete: () -> Void
@@ -30,11 +31,11 @@ struct SessionRowView: View {
                 HStack(spacing: Spacing.xs) {
                     if let projectName {
                         Text(projectName)
-                            .font(Theme.caption)
-                            .foregroundStyle(Theme.projectColor(for: projectName))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.accent)
                         Text("\u{2014}")
                             .font(Theme.caption)
-                            .foregroundStyle(Theme.textSecondary)
+                            .foregroundStyle(Theme.accent.opacity(0.5))
                     }
 
                     if isRenaming {
@@ -114,6 +115,8 @@ struct SessionRowView: View {
         )
         .animation(.easeOut(duration: 0.15), value: isHovered)
         .animation(.easeOut(duration: 0.15), value: isSelected)
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect?() }
         .onHover { hovering in isHovered = hovering }
         .contextMenu {
             Button("Resume Session") { onResume() }

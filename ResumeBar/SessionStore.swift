@@ -97,6 +97,40 @@ import Foundation
 
     // MARK: - Chat Messages
 
+    func loadAllChatMessages(for session: Session) -> [ChatMessage] {
+        guard let data = try? Data(contentsOf: session.jsonlURL) else {
+            return []
+        }
+        let content = String(decoding: data, as: UTF8.self)
+        let lines = content.components(separatedBy: .newlines)
+
+        let ignoredTypes: Set<String> = ["tool_use", "tool_result", "thinking", "progress", "file-history-snapshot"]
+        var allMessages: [ChatMessage] = []
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty,
+                  let lineData = trimmed.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+                  let type = json["type"] as? String
+            else { continue }
+
+            if ignoredTypes.contains(type) { continue }
+
+            if type == "user", let message = json["message"] as? [String: Any] {
+                if let text = extractText(from: message), !text.isEmpty {
+                    allMessages.append(ChatMessage(role: .user, text: text))
+                }
+            } else if type == "assistant", let message = json["message"] as? [String: Any] {
+                if let text = extractText(from: message), !text.isEmpty {
+                    allMessages.append(ChatMessage(role: .assistant, text: text))
+                }
+            }
+        }
+
+        return allMessages
+    }
+
     func loadChatMessages(for session: Session, limit: Int = 8) -> (messages: [ChatMessage], totalCount: Int) {
         if let cached = chatPreviewCache[session.id] {
             return cached

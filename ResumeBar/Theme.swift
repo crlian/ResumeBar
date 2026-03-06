@@ -27,14 +27,14 @@ enum Theme {
     static let border = Color(hex: "#2A2A2A")
 
     static let textPrimary = Color(hex: "#EAEAEA")
-    static let textSecondary = Color(hex: "#9CA3AF")
+    static let textSecondary = Color(hex: "#A89585")
 
     static let accent = Color(hex: "#D77757")
     static let accentSubtle = accent.opacity(0.15)
     static let accentGlow = accent.opacity(0.40)
 
     static let hoverBg = Color(hex: "#1F1F1F")
-    static let successDot = Color(hex: "#10B981")
+    static let successDot = Color(hex: "#7A9E5C")
 
     static let cardFill = Color.white.opacity(0.03)
     static let cardFillHover = Color.white.opacity(0.06)
@@ -48,14 +48,14 @@ enum Theme {
     // MARK: - Project Colors
 
     static let projectColors: [Color] = [
-        Color(hex: "#8B5CF6"),
-        Color(hex: "#10B981"),
-        Color(hex: "#3B82F6"),
-        Color(hex: "#F59E0B"),
-        Color(hex: "#EC4899"),
-        Color(hex: "#06B6D4"),
-        Color(hex: "#84CC16"),
-        Color(hex: "#D77757"),
+        Color(hex: "#D77757"), // coral
+        Color(hex: "#E8956E"), // coral claro
+        Color(hex: "#B5613F"), // coral oscuro
+        Color(hex: "#C4845A"), // terracota
+        Color(hex: "#E0A882"), // arena
+        Color(hex: "#A37050"), // siena
+        Color(hex: "#D4956B"), // melocotón
+        Color(hex: "#C06A45"), // cobre
     ]
 
     static func projectColor(for name: String) -> Color {

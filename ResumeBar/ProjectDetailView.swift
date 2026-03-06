@@ -13,9 +13,7 @@ struct ProjectDetailView: View {
     let settings: AppSettings
 
     var onBack: () -> Void
-
-    @State private var expandedSessionId: String?
-    @State private var chatMessages: [String: ([ChatMessage], Int)] = [:]
+    var onSelectSession: (Session) -> Void
 
     private var sessions: [Session] {
         let query = store.searchText.lowercased()
@@ -35,7 +33,7 @@ struct ProjectDetailView: View {
                         .font(.system(size: 12, weight: .semibold))
                     Circle()
                         .fill(Theme.projectColor(for: project.displayName))
-                        .frame(width: 8, height: 8)
+                        .frame(width: 10, height: 10)
                     Text(project.displayName)
                         .font(Theme.projectName)
                     Spacer()
@@ -63,41 +61,18 @@ struct ProjectDetailView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(sessions) { session in
-                            VStack(alignment: .leading, spacing: 0) {
-                                SessionRowView(
-                                    session: session,
-                                    projectName: nil,
-                                    displayTitle: store.displayTitle(for: session),
-                                    isPinned: pinStore.isPinned(session.id),
-                                    isSelected: false,
-                                    onResume: { resumeSession(session) },
-                                    onTogglePin: { pinStore.toggle(session.id) },
-                                    onDelete: { store.deleteSession(session) },
-                                    onRename: { aliasStore.set($0, for: session.id) }
-                                )
-                                .onTapGesture {
-                                    withAnimation(.easeOut(duration: 0.2)) {
-                                        if expandedSessionId == session.id {
-                                            expandedSessionId = nil
-                                        } else {
-                                            expandedSessionId = session.id
-                                            if chatMessages[session.id] == nil {
-                                                let result = store.loadChatMessages(for: session, limit: 8)
-                                                chatMessages[session.id] = (result.messages, result.totalCount)
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if expandedSessionId == session.id,
-                                   let cached = chatMessages[session.id],
-                                   !cached.0.isEmpty {
-                                    ChatPreviewView(messages: cached.0, totalCount: cached.1)
-                                        .padding(.horizontal, Theme.itemH)
-                                        .padding(.bottom, Spacing.s)
-                                        .transition(.opacity)
-                                }
-                            }
+                            SessionRowView(
+                                session: session,
+                                projectName: nil,
+                                displayTitle: store.displayTitle(for: session),
+                                isPinned: pinStore.isPinned(session.id),
+                                isSelected: false,
+                                onSelect: { onSelectSession(session) },
+                                onResume: { resumeSession(session) },
+                                onTogglePin: { pinStore.toggle(session.id) },
+                                onDelete: { store.deleteSession(session) },
+                                onRename: { aliasStore.set($0, for: session.id) }
+                            )
                         }
                     }
                     .padding(.horizontal, Spacing.m)

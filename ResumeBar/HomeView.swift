@@ -12,6 +12,7 @@ struct HomeView: View {
     let settings: AppSettings
 
     var onSelectProject: (Project) -> Void
+    var onSelectSession: ((Session, Project) -> Void)?
 
     @FocusState private var searchFocused: Bool
 
@@ -77,6 +78,7 @@ struct HomeView: View {
                                     displayTitle: store.displayTitle(for: pair.session),
                                     isPinned: true,
                                     isSelected: false,
+                                    onSelect: { onSelectSession?(pair.session, pair.project) },
                                     onResume: { resumeSession(pair.session) },
                                     onTogglePin: { pinStore.toggle(pair.session.id) },
                                     onDelete: { store.deleteSession(pair.session) },
@@ -94,6 +96,7 @@ struct HomeView: View {
                                     displayTitle: store.displayTitle(for: pair.session),
                                     isPinned: pinStore.isPinned(pair.session.id),
                                     isSelected: false,
+                                    onSelect: { onSelectSession?(pair.session, pair.project) },
                                     onResume: { resumeSession(pair.session) },
                                     onTogglePin: { pinStore.toggle(pair.session.id) },
                                     onDelete: { store.deleteSession(pair.session) },
@@ -161,7 +164,7 @@ struct HomeView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(Theme.overline)
-            .foregroundStyle(Theme.textSecondary)
+            .foregroundStyle(Theme.accent.opacity(0.7))
             .padding(.top, Spacing.m)
             .padding(.bottom, Spacing.xs)
             .padding(.leading, Spacing.xs)
@@ -176,7 +179,7 @@ struct HomeView: View {
             HStack(spacing: Spacing.s) {
                 Circle()
                     .fill(Theme.projectColor(for: project.displayName))
-                    .frame(width: 8, height: 8)
+                    .frame(width: 10, height: 10)
 
                 Text(project.displayName)
                     .font(Theme.projectName)
@@ -186,11 +189,11 @@ struct HomeView: View {
 
                 Text("\(project.sessions.count)")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(Theme.accent.opacity(0.85))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
-                        Capsule().fill(Theme.surface)
+                        Capsule().fill(Theme.accentSubtle)
                     )
 
                 Image(systemName: "chevron.right")

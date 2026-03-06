@@ -3,10 +3,23 @@
 //  ResumeBar
 //
 
-import SwiftUI
+import Foundation
 
 @Observable class AppSettings {
-    @ObservationIgnored @AppStorage("terminal") var terminal: String = "Terminal"
-    @ObservationIgnored @AppStorage("autoRefreshInterval") var autoRefreshInterval: Int = 0
-    @ObservationIgnored @AppStorage("recentSessionCount") var recentSessionCount: Int = 5
+    var terminal: SupportedTerminal {
+        didSet { UserDefaults.standard.set(terminal.rawValue, forKey: "terminal") }
+    }
+    var autoRefreshInterval: Int {
+        didSet { UserDefaults.standard.set(autoRefreshInterval, forKey: "autoRefreshInterval") }
+    }
+    var recentSessionCount: Int {
+        didSet { UserDefaults.standard.set(recentSessionCount, forKey: "recentSessionCount") }
+    }
+
+    init() {
+        let raw = UserDefaults.standard.string(forKey: "terminal") ?? ""
+        terminal = SupportedTerminal(rawValue: raw) ?? .terminal
+        autoRefreshInterval = UserDefaults.standard.integer(forKey: "autoRefreshInterval")
+        recentSessionCount = (UserDefaults.standard.object(forKey: "recentSessionCount") as? Int) ?? 5
+    }
 }
