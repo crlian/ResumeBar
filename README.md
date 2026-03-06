@@ -4,6 +4,8 @@ Resume any Claude Code session in one click from your menu bar.
 
 ![ResumeBar Demo](assets/demo.gif)
 
+> **Early preview** — This project is a couple of days old. Expect bugs, rough edges, and things that don't quite work yet. Feedback and PRs welcome!
+
 ## Why
 
 If you use Claude Code daily, resuming old sessions is painful. You have to remember session IDs, dig through terminal history, or navigate `.claude/projects/` manually.
@@ -28,8 +30,10 @@ ResumeBar puts all your sessions one click away:
 
 ## Screenshots
 
-![Home](assets/home.jpeg)
-![Sessions Detail](assets/sessions.png)
+<p>
+  <img src="assets/home.jpeg" width="280" alt="Home">
+  <img src="assets/sessions.png" width="280" alt="Sessions Detail">
+</p>
 
 ## Installation
 
