@@ -17,8 +17,8 @@ struct ChatPreviewView: View {
 
             if totalCount > messages.count {
                 Text("\u{00B7}\u{00B7}\u{00B7} \(totalCount - messages.count) more messages")
-                    .font(Theme.caption())
-                    .foregroundColor(Theme.textSecondary.opacity(0.6))
+                    .font(Theme.caption)
+                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, Spacing.xs)
             }
@@ -35,9 +35,9 @@ struct ChatPreviewView: View {
         switch message.role {
         case .user:
             Text(message.text)
-                .font(Theme.messageBody())
+                .font(Theme.messageBody)
                 .lineLimit(3)
-                .foregroundColor(Theme.textPrimary)
+                .foregroundStyle(Theme.textPrimary)
                 .padding(.horizontal, Spacing.s)
                 .padding(.vertical, Spacing.xs)
                 .background(
@@ -46,9 +46,9 @@ struct ChatPreviewView: View {
                 )
         case .assistant:
             Text(message.text)
-                .font(Theme.messageBody())
+                .font(Theme.messageBody)
                 .lineLimit(3)
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
                 .padding(.vertical, Spacing.xs)
         }
     }

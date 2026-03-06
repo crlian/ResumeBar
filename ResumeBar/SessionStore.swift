@@ -3,13 +3,12 @@
 //  ResumeBar
 //
 
-import Combine
 import Foundation
 
-class SessionStore: ObservableObject {
-    @Published var projects: [Project] = []
-    @Published var searchText: String = ""
-    @Published var hasMore: Bool = false
+@Observable class SessionStore {
+    var projects: [Project] = []
+    var searchText: String = ""
+    var hasMore: Bool = false
 
     let aliasStore: AliasStore
 
@@ -17,17 +16,17 @@ class SessionStore: ObservableObject {
         aliasStore.alias(for: session.id) ?? session.title
     }
 
-    private var sessionLoadLimit: Int = 50
+    @ObservationIgnored private var sessionLoadLimit: Int = 50
 
-    private let iso8601: ISO8601DateFormatter = {
+    @ObservationIgnored private let iso8601: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
 
-    private var fileWatcherSource: DispatchSourceFileSystemObject?
-    private var fileDescriptor: Int32 = -1
-    private var chatPreviewCache: [String: ([ChatMessage], Int)] = [:]
+    @ObservationIgnored private var fileWatcherSource: DispatchSourceFileSystemObject?
+    @ObservationIgnored private var fileDescriptor: Int32 = -1
+    @ObservationIgnored private var chatPreviewCache: [String: ([ChatMessage], Int)] = [:]
 
     // MARK: - Computed Properties
 
@@ -56,7 +55,7 @@ class SessionStore: ObservableObject {
         return results
     }
 
-    var recentSessions: [(project: Project, session: Session)] {
+    func recentSessions(limit: Int) -> [(project: Project, session: Session)] {
         var all: [(Project, Session)] = []
         for project in projects {
             for session in project.sessions {
@@ -64,7 +63,7 @@ class SessionStore: ObservableObject {
             }
         }
         all.sort { $0.1.lastActivity > $1.1.lastActivity }
-        return Array(all.prefix(5))
+        return Array(all.prefix(limit))
     }
 
     func pinnedSessions(pinStore: PinStore) -> [(project: Project, session: Session)] {
@@ -348,21 +347,23 @@ class SessionStore: ObservableObject {
 
         return nil
     }
+}
 
-    func relativeDate(_ date: Date) -> String {
-        let seconds = Int(-date.timeIntervalSinceNow)
-        if seconds < 60 { return "just now" }
-        let minutes = seconds / 60
-        if minutes < 60 { return "\(minutes)m" }
-        let hours = minutes / 60
-        if hours < 24 { return "\(hours)h" }
-        let days = hours / 24
-        if days < 7 { return "\(days)d" }
-        let weeks = days / 7
-        if weeks < 4 { return "\(weeks)w" }
-        let months = days / 30
-        if months < 12 { return "\(months)mo" }
-        let years = days / 365
-        return "\(years)y"
-    }
+// MARK: - Shared Utility
+
+func relativeDate(_ date: Date) -> String {
+    let seconds = Int(-date.timeIntervalSinceNow)
+    if seconds < 60 { return "just now" }
+    let minutes = seconds / 60
+    if minutes < 60 { return "\(minutes)m" }
+    let hours = minutes / 60
+    if hours < 24 { return "\(hours)h" }
+    let days = hours / 24
+    if days < 7 { return "\(days)d" }
+    let weeks = days / 7
+    if weeks < 4 { return "\(weeks)w" }
+    let months = days / 30
+    if months < 12 { return "\(months)mo" }
+    let years = days / 365
+    return "\(years)y"
 }

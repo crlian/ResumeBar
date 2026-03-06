@@ -21,10 +21,10 @@ enum NavigationScreen: Equatable {
 }
 
 struct ContentView: View {
-    @ObservedObject var store: SessionStore
-    @ObservedObject var settings: AppSettings
-    @ObservedObject var aliasStore: AliasStore
-    @ObservedObject var pinStore: PinStore
+    let store: SessionStore
+    let settings: AppSettings
+    let aliasStore: AliasStore
+    let pinStore: PinStore
 
     @State private var screen: NavigationScreen = .home
 

@@ -3,13 +3,12 @@
 //  ResumeBar
 //
 
-import Combine
 import Foundation
 
-class PinStore: ObservableObject {
-    @Published private(set) var pinnedIds: [String] = []
+@Observable class PinStore {
+    private(set) var pinnedIds: [String] = []
 
-    private let fileURL: URL
+    @ObservationIgnored private let fileURL: URL
 
     init() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!

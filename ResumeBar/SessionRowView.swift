@@ -30,33 +30,33 @@ struct SessionRowView: View {
                 HStack(spacing: Spacing.xs) {
                     if let projectName {
                         Text(projectName)
-                            .font(Theme.caption())
-                            .foregroundColor(Theme.projectColor(for: projectName))
+                            .font(Theme.caption)
+                            .foregroundStyle(Theme.projectColor(for: projectName))
                         Text("\u{2014}")
-                            .font(Theme.caption())
-                            .foregroundColor(Theme.textSecondary)
+                            .font(Theme.caption)
+                            .foregroundStyle(Theme.textSecondary)
                     }
 
                     if isRenaming {
                         TextField("Session name", text: $renameText)
                             .textFieldStyle(.plain)
-                            .font(Theme.title())
-                            .foregroundColor(Theme.textPrimary)
+                            .font(Theme.title)
+                            .foregroundStyle(Theme.textPrimary)
                             .focused($renameFocused)
                             .onSubmit { commitRename() }
                             .onExitCommand { cancelRename() }
                     } else {
                         Text(displayTitle)
-                            .font(Theme.title())
-                            .foregroundColor(Theme.textPrimary)
+                            .font(Theme.title)
+                            .foregroundStyle(Theme.textPrimary)
                             .lineLimit(1)
                     }
                 }
 
                 if !session.preview.isEmpty && !isRenaming {
                     Text(session.preview)
-                        .font(Theme.preview())
-                        .foregroundColor(Theme.textSecondary)
+                        .font(Theme.preview)
+                        .foregroundStyle(Theme.textSecondary)
                         .lineLimit(1)
                 }
             }
@@ -65,8 +65,8 @@ struct SessionRowView: View {
 
             if isHovered && !isRenaming {
                 Text(relativeDate(session.lastActivity))
-                    .font(Theme.caption())
-                    .foregroundColor(Theme.textSecondary)
+                    .font(Theme.caption)
+                    .foregroundStyle(Theme.textSecondary)
                     .transition(.opacity)
 
                 Button {
@@ -74,7 +74,7 @@ struct SessionRowView: View {
                 } label: {
                     Image(systemName: "pencil")
                         .font(.system(size: 10))
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                         .frame(width: 24, height: 24)
                         .background(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -95,7 +95,7 @@ struct SessionRowView: View {
                     Image(systemName: resumeFeedback ? "checkmark" : "play.fill")
                         .contentTransition(.symbolEffect(.replace))
                         .font(.system(size: 10))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .frame(width: 24, height: 24)
                         .background(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -153,22 +153,5 @@ struct SessionRowView: View {
 
     private func cancelRename() {
         isRenaming = false
-    }
-
-    private func relativeDate(_ date: Date) -> String {
-        let seconds = Int(-date.timeIntervalSinceNow)
-        if seconds < 60 { return "just now" }
-        let minutes = seconds / 60
-        if minutes < 60 { return "\(minutes)m" }
-        let hours = minutes / 60
-        if hours < 24 { return "\(hours)h" }
-        let days = hours / 24
-        if days < 7 { return "\(days)d" }
-        let weeks = days / 7
-        if weeks < 4 { return "\(weeks)w" }
-        let months = days / 30
-        if months < 12 { return "\(months)mo" }
-        let years = days / 365
-        return "\(years)y"
     }
 }

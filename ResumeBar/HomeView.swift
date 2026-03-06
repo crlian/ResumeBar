@@ -6,10 +6,10 @@
 import SwiftUI
 
 struct HomeView: View {
-    @ObservedObject var store: SessionStore
-    @ObservedObject var pinStore: PinStore
-    @ObservedObject var aliasStore: AliasStore
-    @ObservedObject var settings: AppSettings
+    @Bindable var store: SessionStore
+    let pinStore: PinStore
+    let aliasStore: AliasStore
+    let settings: AppSettings
 
     var onSelectProject: (Project) -> Void
 
@@ -20,7 +20,7 @@ struct HomeView: View {
     }
 
     private var recentSessions: [(project: Project, session: Session)] {
-        store.recentSessions
+        store.recentSessions(limit: settings.recentSessionCount)
     }
 
     private var filteredProjects: [Project] {
@@ -67,7 +67,7 @@ struct HomeView: View {
                 emptyState(icon: "magnifyingglass", text: "No matching sessions")
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         if !filteredPinned.isEmpty {
                             sectionHeader("PINNED")
                             ForEach(filteredPinned, id: \.session.id) { pair in
@@ -126,18 +126,18 @@ struct HomeView: View {
     private var searchBar: some View {
         HStack(spacing: Spacing.s) {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
                 .font(.system(size: 13))
             TextField("Search sessions...", text: $store.searchText)
                 .textFieldStyle(.plain)
-                .font(Theme.searchFont())
-                .foregroundColor(Theme.textPrimary)
+                .font(Theme.searchFont)
+                .foregroundStyle(Theme.textPrimary)
                 .focused($searchFocused)
 
             SettingsLink {
                 Image(systemName: "gearshape")
                     .font(.system(size: 13))
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
             }
             .buttonStyle(.plain)
         }
@@ -160,8 +160,8 @@ struct HomeView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Theme.overline())
-            .foregroundColor(Theme.textSecondary)
+            .font(Theme.overline)
+            .foregroundStyle(Theme.textSecondary)
             .padding(.top, Spacing.m)
             .padding(.bottom, Spacing.xs)
             .padding(.leading, Spacing.xs)
@@ -179,14 +179,14 @@ struct HomeView: View {
                     .frame(width: 8, height: 8)
 
                 Text(project.displayName)
-                    .font(Theme.projectName())
-                    .foregroundColor(Theme.textPrimary)
+                    .font(Theme.projectName)
+                    .foregroundStyle(Theme.textPrimary)
 
                 Spacer()
 
                 Text("\(project.sessions.count)")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
@@ -195,7 +195,7 @@ struct HomeView: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
             }
             .padding(.horizontal, Theme.itemH)
             .padding(.vertical, Theme.itemV)
@@ -210,10 +210,10 @@ struct HomeView: View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 32))
-                .foregroundColor(Theme.textSecondary.opacity(0.5))
+                .foregroundStyle(Theme.textSecondary.opacity(0.5))
             Text(text)
-                .foregroundColor(Theme.textSecondary)
-                .font(Theme.caption())
+                .foregroundStyle(Theme.textSecondary)
+                .font(Theme.caption)
         }
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.vertical, 40)
@@ -224,8 +224,8 @@ struct HomeView: View {
     private var keyboardHints: some View {
         HStack {
             Text("\u{2195} Navigate  \u{23CE} Open  \u{238B} Close")
-                .font(Theme.caption())
-                .foregroundColor(Theme.textSecondary.opacity(0.6))
+                .font(Theme.caption)
+                .foregroundStyle(Theme.textSecondary.opacity(0.6))
         }
         .padding(.horizontal, Spacing.m)
         .padding(.vertical, Spacing.xs)

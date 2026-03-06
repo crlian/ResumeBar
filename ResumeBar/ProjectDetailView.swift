@@ -7,14 +7,15 @@ import SwiftUI
 
 struct ProjectDetailView: View {
     let project: Project
-    @ObservedObject var store: SessionStore
-    @ObservedObject var pinStore: PinStore
-    @ObservedObject var aliasStore: AliasStore
-    @ObservedObject var settings: AppSettings
+    let store: SessionStore
+    let pinStore: PinStore
+    let aliasStore: AliasStore
+    let settings: AppSettings
 
     var onBack: () -> Void
 
     @State private var expandedSessionId: String?
+    @State private var chatMessages: [String: ([ChatMessage], Int)] = [:]
 
     private var sessions: [Session] {
         let query = store.searchText.lowercased()
@@ -36,10 +37,10 @@ struct ProjectDetailView: View {
                         .fill(Theme.projectColor(for: project.displayName))
                         .frame(width: 8, height: 8)
                     Text(project.displayName)
-                        .font(Theme.projectName())
+                        .font(Theme.projectName)
                     Spacer()
                 }
-                .foregroundColor(Theme.textPrimary)
+                .foregroundStyle(Theme.textPrimary)
                 .padding(.horizontal, Theme.itemH)
                 .padding(.vertical, Spacing.m)
             }
@@ -51,16 +52,16 @@ struct ProjectDetailView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 32))
-                        .foregroundColor(Theme.textSecondary.opacity(0.5))
+                        .foregroundStyle(Theme.textSecondary.opacity(0.5))
                     Text("No matching sessions")
-                        .foregroundColor(Theme.textSecondary)
-                        .font(Theme.caption())
+                        .foregroundStyle(Theme.textSecondary)
+                        .font(Theme.caption)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 40)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(sessions) { session in
                             VStack(alignment: .leading, spacing: 0) {
                                 SessionRowView(
@@ -80,18 +81,21 @@ struct ProjectDetailView: View {
                                             expandedSessionId = nil
                                         } else {
                                             expandedSessionId = session.id
+                                            if chatMessages[session.id] == nil {
+                                                let result = store.loadChatMessages(for: session, limit: 8)
+                                                chatMessages[session.id] = (result.messages, result.totalCount)
+                                            }
                                         }
                                     }
                                 }
 
-                                if expandedSessionId == session.id {
-                                    let result = store.loadChatMessages(for: session, limit: 8)
-                                    if !result.messages.isEmpty {
-                                        ChatPreviewView(messages: result.messages, totalCount: result.totalCount)
-                                            .padding(.horizontal, Theme.itemH)
-                                            .padding(.bottom, Spacing.s)
-                                            .transition(.opacity)
-                                    }
+                                if expandedSessionId == session.id,
+                                   let cached = chatMessages[session.id],
+                                   !cached.0.isEmpty {
+                                    ChatPreviewView(messages: cached.0, totalCount: cached.1)
+                                        .padding(.horizontal, Theme.itemH)
+                                        .padding(.bottom, Spacing.s)
+                                        .transition(.opacity)
                                 }
                             }
                         }
@@ -105,8 +109,8 @@ struct ProjectDetailView: View {
             GradientSeparator()
             HStack {
                 Text("\u{2195} Navigate  \u{2423} Preview  \u{23CE} Resume  \u{238B} Back")
-                    .font(Theme.caption())
-                    .foregroundColor(Theme.textSecondary.opacity(0.6))
+                    .font(Theme.caption)
+                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
             }
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)

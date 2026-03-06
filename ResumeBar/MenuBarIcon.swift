@@ -1,16 +1,20 @@
 import AppKit
-import Combine
 import SwiftUI
 
 struct MenuBarIcon: View {
     @State private var cursorVisible = true
-
-    private let timer = Timer.publish(every: 0.6, on: .main, in: .common).autoconnect()
+    @State private var timer: Timer?
 
     var body: some View {
         Image(nsImage: buildIcon(cursorVisible: cursorVisible))
-            .onReceive(timer) { _ in
-                cursorVisible.toggle()
+            .onAppear {
+                timer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { _ in
+                    cursorVisible.toggle()
+                }
+            }
+            .onDisappear {
+                timer?.invalidate()
+                timer = nil
             }
     }
 

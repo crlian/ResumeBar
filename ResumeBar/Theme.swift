@@ -69,35 +69,35 @@ enum Theme {
 
     // MARK: - Typography
 
-    static func searchFont() -> Font {
+    static var searchFont: Font {
         .system(size: 14, weight: .regular, design: .default)
     }
 
-    static func projectName() -> Font {
+    static var projectName: Font {
         .system(size: 13, weight: .semibold, design: .default)
     }
 
-    static func title() -> Font {
+    static var title: Font {
         .system(size: 13, weight: .medium, design: .default)
     }
 
-    static func body() -> Font {
+    nonisolated(unsafe) static var body: Font {
         .system(size: 12, weight: .regular, design: .default)
     }
 
-    static func preview() -> Font {
+    static var preview: Font {
         .system(size: 12, weight: .regular, design: .default)
     }
 
-    static func caption() -> Font {
+    static var caption: Font {
         .system(size: 11, weight: .regular, design: .default)
     }
 
-    static func overline() -> Font {
+    static var overline: Font {
         .system(size: 10, weight: .semibold, design: .default)
     }
 
-    static func messageBody() -> Font {
+    static var messageBody: Font {
         .system(size: 12, weight: .regular, design: .default)
     }
 

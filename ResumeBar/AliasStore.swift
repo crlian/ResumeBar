@@ -3,13 +3,12 @@
 //  ResumeBar
 //
 
-import Combine
 import Foundation
 
-class AliasStore: ObservableObject {
-    @Published private(set) var aliases: [String: String] = [:]
+@Observable class AliasStore {
+    private(set) var aliases: [String: String] = [:]
 
-    private let fileURL: URL
+    @ObservationIgnored private let fileURL: URL
 
     init() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!

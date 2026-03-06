@@ -9,17 +9,15 @@ import SwiftUI
 
 @main
 struct ResumeBarApp: App {
-    @StateObject private var aliasStore = AliasStore()
-    @StateObject private var settings = AppSettings()
-    @StateObject private var pinStore = PinStore()
-
-    @StateObject private var store: SessionStore
+    @State private var aliasStore = AliasStore()
+    @State private var settings = AppSettings()
+    @State private var pinStore = PinStore()
+    @State private var store: SessionStore
 
     init() {
         let alias = AliasStore()
-        _aliasStore = StateObject(wrappedValue: alias)
-        _settings = StateObject(wrappedValue: AppSettings())
-        _store = StateObject(wrappedValue: SessionStore(aliasStore: alias))
+        _aliasStore = State(initialValue: alias)
+        _store = State(initialValue: SessionStore(aliasStore: alias))
     }
 
     var body: some Scene {
