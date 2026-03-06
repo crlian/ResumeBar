@@ -1,6 +1,6 @@
 # ResumeBar
 
-[![GitHub release](https://img.shields.io/github/v/release/crlian/ResumeBar?include_prereleases&style=flat-square)](https://github.com/crlian/ResumeBar/releases)
+[![GitHub release](https://img.shields.io/github/v/release/crlian/ResumeBar?include_prereleases&style=flat-square&logo=github)](https://github.com/crlian/ResumeBar/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-26%2B-black?style=flat-square&logo=apple)](https://github.com/crlian/ResumeBar)
 [![GitHub stars](https://img.shields.io/github/stars/crlian/ResumeBar?style=flat-square)](https://github.com/crlian/ResumeBar/stargazers)
