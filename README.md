@@ -26,12 +26,19 @@ ResumeBar puts all your sessions one click away:
 - **Menu bar app** — lives in your macOS menu bar, zero window management
 - **Project browser** — all Claude Code projects with session counts and last activity
 - **Session list** — sorted by recency, with first-message preview
-- **Chat preview** — expand any session to peek at the conversation
+- **Chat preview** — drill into any session to read the full conversation
 - **Search** — filter projects and sessions as you type
+- **Pin sessions** — keep your most important sessions at the top
+- **Rename sessions** — give sessions meaningful names instead of cryptic first messages
 - **One-click resume** — launches `claude --resume <session-id>` in your terminal
-- **Terminal support** — works with Terminal, iTerm2, and Ghostty
+- **Terminal support** — works with Terminal, iTerm2, Ghostty, and Warp
 - **Auto-refresh** — watches `~/.claude/projects/` for changes via file system events
-- **Settings** — configure terminal app, max sessions shown, refresh interval
+- **Settings** — configure terminal app, recent session count, refresh interval
+
+## Roadmap
+
+- **Auto-naming** — use Claude to automatically generate descriptive names for each session based on the conversation content
+- Your ideas? [Open an issue](../../issues)
 
 ## Screenshots
 
