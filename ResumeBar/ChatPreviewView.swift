@@ -3,6 +3,7 @@
 //  ResumeBar
 //
 
+import MarkdownUI
 import SwiftUI
 
 struct ChatPreviewView: View {
@@ -45,10 +46,20 @@ struct ChatPreviewView: View {
                         .fill(Theme.accentSubtle)
                 )
         case .assistant:
-            Text(message.text)
-                .font(Theme.messageBody)
+            Markdown(message.text)
+                .markdownTextStyle {
+                    FontSize(12)
+                    ForegroundColor(Theme.textSecondary)
+                }
+                .markdownBlockStyle(\.codeBlock) { configuration in
+                    configuration.label
+                        .padding(Spacing.s)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.black.opacity(0.3))
+                        )
+                }
                 .lineLimit(3)
-                .foregroundStyle(Theme.textSecondary)
                 .padding(.vertical, Spacing.xs)
         }
     }

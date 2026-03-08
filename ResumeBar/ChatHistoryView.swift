@@ -3,6 +3,7 @@
 //  ResumeBar
 //
 
+import MarkdownUI
 import SwiftUI
 
 struct ChatHistoryView: View {
@@ -142,9 +143,27 @@ struct ChatHistoryView: View {
                 .foregroundStyle(isUser ? Theme.accent : Color(hex: "#8B9DC3"))
                 .padding(.horizontal, 4)
 
-                Text(message.text)
-                    .font(Theme.messageBody)
-                    .foregroundStyle(isUser ? Color.white : Theme.textPrimary)
+                Group {
+                    if isUser {
+                        Text(message.text)
+                            .font(Theme.messageBody)
+                            .foregroundStyle(Color.white)
+                    } else {
+                        Markdown(message.text)
+                            .markdownTextStyle {
+                                FontSize(12)
+                                ForegroundColor(Theme.textPrimary)
+                            }
+                            .markdownBlockStyle(\.codeBlock) { configuration in
+                                configuration.label
+                                    .padding(Spacing.s)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .fill(Color.black.opacity(0.3))
+                                    )
+                            }
+                    }
+                }
                     .textSelection(.enabled)
                     .lineSpacing(3)
                     .padding(.horizontal, Spacing.s + 2)
