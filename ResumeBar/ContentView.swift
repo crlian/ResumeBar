@@ -29,7 +29,6 @@ struct ContentView: View {
     let pinStore: PinStore
 
     @State private var screen: NavigationScreen = .home
-
     @State private var chatEnteredFromHome = false
 
     private let animation: Animation = .easeInOut(duration: 0.15)
@@ -45,14 +44,12 @@ struct ContentView: View {
                     settings: settings,
                     onSelectProject: { project in
                         withAnimation(animation) {
-    
                             screen = .projectDetail(project)
                         }
                     },
                     onSelectSession: { session, project in
                         chatEnteredFromHome = true
                         withAnimation(animation) {
-    
                             screen = .sessionChat(session, project)
                         }
                     }
@@ -69,14 +66,12 @@ struct ContentView: View {
                     settings: settings,
                     onBack: {
                         withAnimation(animation) {
-    
                             screen = .home
                         }
                     },
                     onSelectSession: { session in
                         chatEnteredFromHome = false
                         withAnimation(animation) {
-    
                             screen = .sessionChat(session, project)
                         }
                     }
@@ -92,7 +87,6 @@ struct ContentView: View {
                     settings: settings,
                     onBack: {
                         withAnimation(animation) {
-    
                             screen = chatEnteredFromHome ? .home : .projectDetail(project)
                         }
                     }
