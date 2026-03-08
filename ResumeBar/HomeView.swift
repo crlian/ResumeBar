@@ -16,44 +16,16 @@ struct HomeView: View {
 
     @FocusState private var searchFocused: Bool
 
-    private var pinnedSessions: [(project: Project, session: Session)] {
-        store.pinnedSessions(pinStore: pinStore)
-    }
-
-    private var recentSessions: [(project: Project, session: Session)] {
-        store.recentSessions(limit: settings.recentSessionCount)
-    }
-
-    private var filteredProjects: [Project] {
-        let query = store.searchText.lowercased()
-        if query.isEmpty { return store.projects }
-        return store.projects.filter { project in
-            project.displayName.lowercased().contains(query)
-                || project.sessions.contains { session in
-                    store.displayTitle(for: session).lowercased().contains(query)
-                        || session.title.lowercased().contains(query)
-                }
-        }
-    }
-
     private var filteredPinned: [(project: Project, session: Session)] {
-        let query = store.searchText.lowercased()
-        if query.isEmpty { return pinnedSessions }
-        return pinnedSessions.filter {
-            store.displayTitle(for: $0.session).lowercased().contains(query)
-                || $0.session.title.lowercased().contains(query)
-                || $0.project.displayName.lowercased().contains(query)
-        }
+        store.filteredPinnedSessions(pinStore: pinStore, query: store.searchText)
     }
 
     private var filteredRecent: [(project: Project, session: Session)] {
-        let query = store.searchText.lowercased()
-        if query.isEmpty { return recentSessions }
-        return recentSessions.filter {
-            store.displayTitle(for: $0.session).lowercased().contains(query)
-                || $0.session.title.lowercased().contains(query)
-                || $0.project.displayName.lowercased().contains(query)
-        }
+        store.filteredRecentSessions(limit: settings.recentSessionCount, query: store.searchText)
+    }
+
+    private var filteredProjects: [Project] {
+        store.filteredProjects(query: store.searchText)
     }
 
     var body: some View {

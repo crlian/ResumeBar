@@ -1,7 +1,6 @@
 //
 //  SessionStore.swift
 //  ResumeBar
-//
 
 import Foundation
 
@@ -27,6 +26,7 @@ import Foundation
     @ObservationIgnored private var fileWatcherSource: DispatchSourceFileSystemObject?
     @ObservationIgnored private var fileDescriptor: Int32 = -1
     @ObservationIgnored private var chatPreviewCache: [String: ([ChatMessage], Int)] = [:]
+    @ObservationIgnored private var debounceWork: DispatchWorkItem?
 
     // MARK: - Computed Properties
 
@@ -66,6 +66,40 @@ import Foundation
         return Array(all.prefix(limit))
     }
 
+    func filteredRecentSessions(limit: Int, query: String) -> [(project: Project, session: Session)] {
+        let recent = recentSessions(limit: limit)
+        let q = query.lowercased()
+        if q.isEmpty { return recent }
+        return recent.filter {
+            displayTitle(for: $0.session).lowercased().contains(q)
+                || $0.session.title.lowercased().contains(q)
+                || $0.project.displayName.lowercased().contains(q)
+        }
+    }
+
+    func filteredPinnedSessions(pinStore: PinStore, query: String) -> [(project: Project, session: Session)] {
+        let pinned = pinnedSessions(pinStore: pinStore)
+        let q = query.lowercased()
+        if q.isEmpty { return pinned }
+        return pinned.filter {
+            displayTitle(for: $0.session).lowercased().contains(q)
+                || $0.session.title.lowercased().contains(q)
+                || $0.project.displayName.lowercased().contains(q)
+        }
+    }
+
+    func filteredProjects(query: String) -> [Project] {
+        let q = query.lowercased()
+        if q.isEmpty { return projects }
+        return projects.filter { project in
+            project.displayName.lowercased().contains(q)
+                || project.sessions.contains { session in
+                    displayTitle(for: session).lowercased().contains(q)
+                        || session.title.lowercased().contains(q)
+                }
+        }
+    }
+
     func pinnedSessions(pinStore: PinStore) -> [(project: Project, session: Session)] {
         var result: [(Project, Session)] = []
         for pinId in pinStore.pinnedIds {
@@ -97,38 +131,8 @@ import Foundation
 
     // MARK: - Chat Messages
 
-    func loadAllChatMessages(for session: Session) -> [ChatMessage] {
-        guard let data = try? Data(contentsOf: session.jsonlURL) else {
-            return []
-        }
-        let content = String(decoding: data, as: UTF8.self)
-        let lines = content.components(separatedBy: .newlines)
-
-        let ignoredTypes: Set<String> = ["tool_use", "tool_result", "thinking", "progress", "file-history-snapshot"]
-        var allMessages: [ChatMessage] = []
-
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty,
-                  let lineData = trimmed.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-                  let type = json["type"] as? String
-            else { continue }
-
-            if ignoredTypes.contains(type) { continue }
-
-            if type == "user", let message = json["message"] as? [String: Any] {
-                if let text = extractText(from: message), !text.isEmpty {
-                    allMessages.append(ChatMessage(role: .user, text: text))
-                }
-            } else if type == "assistant", let message = json["message"] as? [String: Any] {
-                if let text = extractText(from: message), !text.isEmpty {
-                    allMessages.append(ChatMessage(role: .assistant, text: text))
-                }
-            }
-        }
-
-        return allMessages
+    func loadAllChatMessages(for session: Session, maxMessages: Int = 200) -> [ChatMessage] {
+        parseChatMessages(from: session.jsonlURL, tailBytes: 512_000, maxMessages: maxMessages)
     }
 
     func loadChatMessages(for session: Session, limit: Int = 8) -> (messages: [ChatMessage], totalCount: Int) {
@@ -136,36 +140,7 @@ import Foundation
             return cached
         }
 
-        guard let data = try? Data(contentsOf: session.jsonlURL) else {
-            return ([], 0)
-        }
-        let content = String(decoding: data, as: UTF8.self)
-        let lines = content.components(separatedBy: .newlines)
-
-        let ignoredTypes: Set<String> = ["tool_use", "tool_result", "thinking", "progress", "file-history-snapshot"]
-        var allMessages: [ChatMessage] = []
-
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty,
-                  let lineData = trimmed.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-                  let type = json["type"] as? String
-            else { continue }
-
-            if ignoredTypes.contains(type) { continue }
-
-            if type == "user", let message = json["message"] as? [String: Any] {
-                if let text = extractText(from: message), !text.isEmpty {
-                    allMessages.append(ChatMessage(role: .user, text: text))
-                }
-            } else if type == "assistant", let message = json["message"] as? [String: Any] {
-                if let text = extractText(from: message), !text.isEmpty {
-                    allMessages.append(ChatMessage(role: .assistant, text: text))
-                }
-            }
-        }
-
+        let allMessages = parseChatMessages(from: session.jsonlURL)
         let total = allMessages.count
         let limited = Array(allMessages.prefix(limit))
         let result = (limited, total)
@@ -173,7 +148,66 @@ import Foundation
         return result
     }
 
-    private func extractText(from message: [String: Any]) -> String? {
+    // MARK: - Unified Chat Parsing
+
+    nonisolated private func parseChatMessages(from url: URL, tailBytes: Int? = nil, maxMessages: Int? = nil) -> [ChatMessage] {
+        let data: Data
+        if let tailBytes,
+           let handle = try? FileHandle(forReadingFrom: url) {
+            defer { try? handle.close() }
+            let fileSize = handle.seekToEndOfFile()
+            if fileSize > tailBytes {
+                handle.seek(toFileOffset: fileSize - UInt64(tailBytes))
+            } else {
+                handle.seek(toFileOffset: 0)
+            }
+            data = handle.readDataToEndOfFile()
+        } else {
+            guard let d = try? Data(contentsOf: url) else { return [] }
+            data = d
+        }
+
+        let content = String(decoding: data, as: UTF8.self)
+        let lines = content.components(separatedBy: .newlines)
+
+        let ignoredTypes: Set<String> = ["tool_use", "tool_result", "thinking", "progress", "file-history-snapshot"]
+        var messages: [ChatMessage] = []
+
+        for line in lines {
+            guard let json = parseJSONLine(line),
+                  let type = json["type"] as? String
+            else { continue }
+
+            if ignoredTypes.contains(type) { continue }
+
+            if (type == "user" || type == "assistant"),
+               let message = json["message"] as? [String: Any],
+               let text = extractTextFromMessage(message), !text.isEmpty {
+                let role: ChatMessage.Role = type == "user" ? .user : .assistant
+                messages.append(ChatMessage(role: role, text: text))
+            }
+        }
+
+        if let maxMessages, messages.count > maxMessages {
+            return Array(messages.suffix(maxMessages))
+        }
+        return messages
+    }
+
+    // MARK: - JSON Line Parsing
+
+    nonisolated private func parseJSONLine(_ line: String) -> [String: Any]? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty,
+              let data = trimmed.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data),
+              let dict = obj as? [String: Any],
+              dict["type"] is String
+        else { return nil }
+        return dict
+    }
+
+    nonisolated private func extractTextFromMessage(_ message: [String: Any]) -> String? {
         if let text = message["content"] as? String {
             return text
         }
@@ -225,9 +259,12 @@ import Foundation
         )
 
         source.setEventHandler { [weak self] in
-            DispatchQueue.main.async {
+            self?.debounceWork?.cancel()
+            let work = DispatchWorkItem { [weak self] in
                 self?.load()
             }
+            self?.debounceWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
         }
 
         source.setCancelHandler { [weak self] in
@@ -242,8 +279,18 @@ import Foundation
     }
 
     func load() {
-        chatPreviewCache = [:]
+        Task.detached { [weak self] in
+            guard let self else { return }
+            let result = self.performLoad()
+            await MainActor.run {
+                self.projects = result.projects
+                self.hasMore = result.hasMore
+                self.chatPreviewCache = [:]
+            }
+        }
+    }
 
+    nonisolated private func performLoad() -> (projects: [Project], hasMore: Bool) {
         let fm = FileManager.default
         let projectsDir = fm.homeDirectoryForCurrentUser
             .appendingPathComponent(".claude/projects")
@@ -252,12 +299,10 @@ import Foundation
             at: projectsDir, includingPropertiesForKeys: nil,
             options: .skipsHiddenFiles
         ) else {
-            projects = []
-            hasMore = false
-            return
+            return ([], false)
         }
 
-        var allFiles: [(url: URL, modDate: Date, projectDir: String, displayName: String)] = []
+        var allFiles: [(url: URL, modDate: Date, projectDir: String)] = []
 
         for dir in projectDirs {
             guard (try? dir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
@@ -265,7 +310,6 @@ import Foundation
             }
 
             let dirName = dir.lastPathComponent
-            let displayName = dirName.split(separator: "-").last.map(String.init) ?? dirName
 
             guard let files = try? fm.contentsOfDirectory(
                 at: dir, includingPropertiesForKeys: [.contentModificationDateKey],
@@ -274,38 +318,44 @@ import Foundation
 
             for file in files where file.pathExtension == "jsonl" {
                 let modDate = (try? fm.attributesOfItem(atPath: file.path)[.modificationDate] as? Date) ?? .distantPast
-                allFiles.append((file, modDate, dirName, displayName))
+                allFiles.append((file, modDate, dirName))
             }
         }
 
         allFiles.sort { $0.modDate > $1.modDate }
-        hasMore = allFiles.count > sessionLoadLimit
+        let hasMore = allFiles.count > sessionLoadLimit
         let filesToParse = allFiles.prefix(sessionLoadLimit)
 
-        var projectSessions: [String: (displayName: String, sessions: [Session])] = [:]
+        var projectSessions: [String: [Session]] = [:]
 
         for entry in filesToParse {
-            guard let session = parseSession(at: entry.url, projectPath: entry.projectDir) else { continue }
-            var group = projectSessions[entry.projectDir] ?? (entry.displayName, [])
-            group.sessions.append(session)
-            projectSessions[entry.projectDir] = group
+            guard let session = parseSessionSync(at: entry.url, projectPath: entry.projectDir) else { continue }
+            projectSessions[entry.projectDir, default: []].append(session)
         }
 
         var result: [Project] = []
-        for (dirName, group) in projectSessions {
-            var sessions = group.sessions
+        for (dirName, var sessions) in projectSessions {
             sessions.sort { $0.lastActivity > $1.lastActivity }
+
+            // Derive display name from cwd of first session
+            let displayName: String
+            if let firstCwd = sessions.first?.cwd, !firstCwd.isEmpty {
+                displayName = URL(fileURLWithPath: firstCwd).lastPathComponent
+            } else {
+                displayName = dirName.split(separator: "-").last.map(String.init) ?? dirName
+            }
+
             result.append(Project(
                 id: dirName,
                 path: dirName,
-                displayName: group.displayName,
+                displayName: displayName,
                 sessions: sessions,
                 lastActivity: sessions.first?.lastActivity ?? .distantPast
             ))
         }
 
         result.sort { $0.lastActivity > $1.lastActivity }
-        projects = result
+        return (result, hasMore)
     }
 
     func loadMore() {
@@ -313,7 +363,7 @@ import Foundation
         load()
     }
 
-    private func parseSession(at url: URL, projectPath: String) -> Session? {
+    nonisolated private func parseSessionSync(at url: URL, projectPath: String) -> Session? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         let content = String(decoding: data, as: UTF8.self)
         let lines = content.components(separatedBy: .newlines)
@@ -323,25 +373,23 @@ import Foundation
         let fm = FileManager.default
         let lastActivity = (try? fm.attributesOfItem(atPath: url.path)[.modificationDate] as? Date) ?? Date()
 
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
         var sessionModel: String?
         var sessionTokens: Int?
 
         for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty,
-                  let lineData = trimmed.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+            guard let json = parseJSONLine(line),
                   let type = json["type"] as? String
             else { continue }
 
-            // Extract model from first assistant message
             if type == "assistant", sessionModel == nil,
                let message = json["message"] as? [String: Any],
                let model = message["model"] as? String {
                 sessionModel = model
             }
 
-            // Extract usage tokens
             if type == "assistant",
                let message = json["message"] as? [String: Any],
                let usage = message["usage"] as? [String: Any] {
@@ -354,12 +402,12 @@ import Foundation
                   let message = json["message"] as? [String: Any]
             else { continue }
 
-            let title = extractText(from: message)
+            let title = extractTextFromMessage(message)
             guard let title, !title.isEmpty else { continue }
 
             var timestamp = lastActivity
             if let ts = json["timestamp"] as? String {
-                timestamp = iso8601.date(from: ts) ?? lastActivity
+                timestamp = iso.date(from: ts) ?? lastActivity
             }
 
             let cwd = json["cwd"] as? String ?? ""

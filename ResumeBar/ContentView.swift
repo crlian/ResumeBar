@@ -29,18 +29,10 @@ struct ContentView: View {
     let pinStore: PinStore
 
     @State private var screen: NavigationScreen = .home
-    @State private var navigatingForward = true
+
     @State private var chatEnteredFromHome = false
 
-    private let animation: Animation = .spring(response: 0.25, dampingFraction: 0.95)
-
-    private var viewTransition: AnyTransition {
-        if navigatingForward {
-            .asymmetric(insertion: .move(edge: .trailing), removal: .identity)
-        } else {
-            .asymmetric(insertion: .identity, removal: .move(edge: .trailing))
-        }
-    }
+    private let animation: Animation = .easeInOut(duration: 0.15)
 
     var body: some View {
         ZStack {
@@ -53,20 +45,20 @@ struct ContentView: View {
                     settings: settings,
                     onSelectProject: { project in
                         withAnimation(animation) {
-                            navigatingForward = true
+    
                             screen = .projectDetail(project)
                         }
                     },
                     onSelectSession: { session, project in
                         chatEnteredFromHome = true
                         withAnimation(animation) {
-                            navigatingForward = true
+    
                             screen = .sessionChat(session, project)
                         }
                     }
                 )
                 .zIndex(0)
-                .transition(viewTransition)
+                .transition(.opacity)
 
             case .projectDetail(let project):
                 ProjectDetailView(
@@ -77,20 +69,20 @@ struct ContentView: View {
                     settings: settings,
                     onBack: {
                         withAnimation(animation) {
-                            navigatingForward = false
+    
                             screen = .home
                         }
                     },
                     onSelectSession: { session in
                         chatEnteredFromHome = false
                         withAnimation(animation) {
-                            navigatingForward = true
+    
                             screen = .sessionChat(session, project)
                         }
                     }
                 )
                 .zIndex(1)
-                .transition(viewTransition)
+                .transition(.opacity)
 
             case .sessionChat(let session, let project):
                 ChatHistoryView(
@@ -100,13 +92,13 @@ struct ContentView: View {
                     settings: settings,
                     onBack: {
                         withAnimation(animation) {
-                            navigatingForward = false
+    
                             screen = chatEnteredFromHome ? .home : .projectDetail(project)
                         }
                     }
                 )
                 .zIndex(2)
-                .transition(viewTransition)
+                .transition(.opacity)
             }
         }
         .clipped()
@@ -116,13 +108,11 @@ struct ContentView: View {
             switch screen {
             case .sessionChat(_, let project):
                 withAnimation(animation) {
-                    navigatingForward = false
                     screen = chatEnteredFromHome ? .home : .projectDetail(project)
                 }
                 return .handled
             case .projectDetail:
                 withAnimation(animation) {
-                    navigatingForward = false
                     screen = .home
                 }
                 return .handled
