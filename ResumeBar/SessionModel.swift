@@ -16,6 +16,8 @@ struct Session: Identifiable {
     let jsonlURL: URL
     var model: String?
     var totalTokens: Int?
+    var fileChanges: [FileChange] = []
+    var totalFilesChanged: Int { Set(fileChanges.map(\.filePath)).count }
 }
 
 struct Project: Identifiable {
@@ -24,6 +26,20 @@ struct Project: Identifiable {
     let displayName: String
     var sessions: [Session]
     let lastActivity: Date
+
+    var totalTokens: Int {
+        sessions.reduce(0) { $0 + ($1.totalTokens ?? 0) }
+    }
+}
+
+struct FileChange: Identifiable {
+    let id = UUID()
+    let filePath: String
+    let fileName: String
+    var linesAdded: Int
+    var linesRemoved: Int
+    var lastOperation: String
+    var totalChanges: Int { linesAdded + linesRemoved }
 }
 
 struct ChatMessage: Identifiable {

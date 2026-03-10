@@ -344,6 +344,10 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
 
         var sessionModel: String?
         var sessionTokens: Int?
+        var firstTitle: String?
+        var firstTimestamp = lastActivity
+        var firstCwd = ""
+        var fileChangeMap: [String: (added: Int, removed: Int, op: String)] = [:]
 
         for line in lines {
             guard let trimmed = Optional(line.trimmingCharacters(in: .whitespaces)),
@@ -353,63 +357,94 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
                   let type = json["type"] as? String
             else { continue }
 
-            if type == "assistant", sessionModel == nil,
-               let message = json["message"] as? [String: Any],
-               let model = message["model"] as? String {
-                sessionModel = model
-            }
-
             if type == "assistant",
-               let message = json["message"] as? [String: Any],
-               let usage = message["usage"] as? [String: Any] {
-                let input = usage["input_tokens"] as? Int ?? 0
-                let output = usage["output_tokens"] as? Int ?? 0
-                sessionTokens = (sessionTokens ?? 0) + input + output
-            }
-
-            guard type == "user",
-                  let message = json["message"] as? [String: Any]
-            else { continue }
-
-            let content = message["content"]
-            let title: String?
-            if let text = content as? String {
-                title = text
-            } else if let parts = content as? [[String: Any]] {
-                let texts = parts.compactMap { part -> String? in
-                    guard part["type"] as? String == "text" else { return nil }
-                    return part["text"] as? String
+               let message = json["message"] as? [String: Any] {
+                if sessionModel == nil, let model = message["model"] as? String {
+                    sessionModel = model
                 }
-                let joined = texts.joined(separator: "\n")
-                title = joined.isEmpty ? nil : joined
-            } else {
-                title = nil
+                if let usage = message["usage"] as? [String: Any] {
+                    let input = usage["input_tokens"] as? Int ?? 0
+                    let output = usage["output_tokens"] as? Int ?? 0
+                    let cacheCreation = usage["cache_creation_input_tokens"] as? Int ?? 0
+                    let cacheRead = usage["cache_read_input_tokens"] as? Int ?? 0
+                    sessionTokens = (sessionTokens ?? 0) + input + output + cacheCreation + cacheRead
+                }
+                if let contentArray = message["content"] as? [[String: Any]] {
+                    for block in contentArray where block["type"] as? String == "tool_use" {
+                        guard let name = block["name"] as? String,
+                              let input = block["input"] as? [String: Any],
+                              let filePath = input["file_path"] as? String
+                        else { continue }
+
+                        if name == "Write" {
+                            let content = input["content"] as? String ?? ""
+                            let lineCount = content.components(separatedBy: "\n").count
+                            fileChangeMap[filePath, default: (0, 0, "Write")].added += lineCount
+                            fileChangeMap[filePath, default: (0, 0, "Write")].op = "Write"
+                        } else if name == "Edit" {
+                            let oldStr = input["old_string"] as? String ?? ""
+                            let newStr = input["new_string"] as? String ?? ""
+                            let oldLines = oldStr.isEmpty ? 0 : oldStr.components(separatedBy: "\n").count
+                            let newLines = newStr.isEmpty ? 0 : newStr.components(separatedBy: "\n").count
+                            fileChangeMap[filePath, default: (0, 0, "Edit")].added += newLines
+                            fileChangeMap[filePath, default: (0, 0, "Edit")].removed += oldLines
+                            fileChangeMap[filePath, default: (0, 0, "Edit")].op = "Edit"
+                        }
+                    }
+                }
             }
-            guard let title, let cleanTitle = MessageSanitizer.clean(title), !cleanTitle.isEmpty else { continue }
 
-            var timestamp = lastActivity
-            if let ts = json["timestamp"] as? String {
-                timestamp = sharedISO8601.date(from: ts) ?? lastActivity
+            if firstTitle == nil, type == "user",
+               let message = json["message"] as? [String: Any] {
+                let content = message["content"]
+                let title: String?
+                if let text = content as? String {
+                    title = text
+                } else if let parts = content as? [[String: Any]] {
+                    let texts = parts.compactMap { part -> String? in
+                        guard part["type"] as? String == "text" else { return nil }
+                        return part["text"] as? String
+                    }
+                    let joined = texts.joined(separator: "\n")
+                    title = joined.isEmpty ? nil : joined
+                } else {
+                    title = nil
+                }
+                if let title, let cleanTitle = MessageSanitizer.clean(title), !cleanTitle.isEmpty {
+                    firstTitle = cleanTitle
+                    if let ts = json["timestamp"] as? String {
+                        firstTimestamp = sharedISO8601.date(from: ts) ?? lastActivity
+                    }
+                    firstCwd = json["cwd"] as? String ?? ""
+                }
             }
-
-            let cwd = json["cwd"] as? String ?? ""
-            let preview = String(cleanTitle.prefix(80))
-
-            return Session(
-                id: sessionId,
-                title: cleanTitle,
-                preview: preview,
-                timestamp: timestamp,
-                lastActivity: lastActivity,
-                projectPath: projectPath,
-                cwd: cwd,
-                jsonlURL: url,
-                model: sessionModel,
-                totalTokens: sessionTokens
-            )
         }
 
-        return nil
+        guard let firstTitle else { return nil }
+
+        let fileChanges = fileChangeMap.map { (path, data) in
+            FileChange(
+                filePath: path,
+                fileName: URL(fileURLWithPath: path).lastPathComponent,
+                linesAdded: data.added,
+                linesRemoved: data.removed,
+                lastOperation: data.op
+            )
+        }.sorted { $0.totalChanges > $1.totalChanges }
+
+        return Session(
+            id: sessionId,
+            title: firstTitle,
+            preview: String(firstTitle.prefix(80)),
+            timestamp: firstTimestamp,
+            lastActivity: lastActivity,
+            projectPath: projectPath,
+            cwd: firstCwd,
+            jsonlURL: url,
+            model: sessionModel,
+            totalTokens: sessionTokens,
+            fileChanges: fileChanges
+        )
     }
 }
 
@@ -430,4 +465,25 @@ func relativeDate(_ date: Date) -> String {
     if months < 12 { return "\(months)mo" }
     let years = days / 365
     return "\(years)y"
+}
+
+// MARK: - Global Stats
+
+extension SessionStore {
+    var totalSessions: Int { projects.reduce(0) { $0 + $1.sessions.count } }
+
+    var totalTokens: Int {
+        projects.reduce(0) { acc, project in
+            acc + project.sessions.reduce(0) { $0 + ($1.totalTokens ?? 0) }
+        }
+    }
+
+    var totalProjects: Int { projects.count }
+
+    static func formatTokens(_ count: Int) -> String {
+        if count < 1_000 { return "\(count)" }
+        if count < 1_000_000 { return "\(count / 1_000)k" }
+        let millions = Double(count) / 1_000_000.0
+        return String(format: "%.1fM", millions)
+    }
 }

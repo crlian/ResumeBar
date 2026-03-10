@@ -48,6 +48,11 @@ struct SessionRowView: View {
                         .lineLimit(1)
                 }
 
+                if let tokens = session.totalTokens, tokens > 0 {
+                    Text("\(SessionStore.formatTokens(tokens)) tokens")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                }
             }
 
             Spacer()

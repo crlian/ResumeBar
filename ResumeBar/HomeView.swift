@@ -34,6 +34,21 @@ struct HomeView: View {
 
             GradientSeparator()
 
+            if store.totalSessions > 0 {
+                HStack(spacing: 4) {
+                    Text("\(store.totalSessions) sessions")
+                    Text("·").foregroundStyle(Theme.accent.opacity(0.4))
+                    Text("\(SessionStore.formatTokens(store.totalTokens)) tokens")
+                    Text("·").foregroundStyle(Theme.accent.opacity(0.4))
+                    Text("\(store.totalProjects) projects")
+                }
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.textSecondary.opacity(0.6))
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
+            }
+
             if store.projects.isEmpty {
                 emptyState(icon: "clock.badge.questionmark", text: "No sessions found")
             } else if filteredProjects.isEmpty && filteredPinned.isEmpty && filteredRecent.isEmpty {

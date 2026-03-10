@@ -46,6 +46,19 @@ struct ProjectDetailView: View {
 
             GradientSeparator()
 
+            if project.totalTokens > 0 {
+                HStack(spacing: 4) {
+                    Text("\(project.sessions.count) sessions")
+                    Text("·").foregroundStyle(Theme.accent.opacity(0.4))
+                    Text("\(SessionStore.formatTokens(project.totalTokens)) tokens")
+                }
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.textSecondary.opacity(0.6))
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
+            }
+
             if sessions.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")

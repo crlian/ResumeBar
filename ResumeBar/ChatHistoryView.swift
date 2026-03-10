@@ -15,6 +15,7 @@ struct ChatHistoryView: View {
 
     @State private var messages: [ChatMessage]
     @State private var resumeFeedback = false
+    @State private var showFileChanges = false
 
     init(session: Session, project: Project, store: SessionStore, settings: AppSettings, onBack: @escaping () -> Void) {
         self.session = session
@@ -30,7 +31,10 @@ struct ChatHistoryView: View {
             header
             GradientSeparator()
 
-            if messages.isEmpty {
+            if showFileChanges {
+                fileChangesPanel
+                    .transition(.blurReplace)
+            } else if messages.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "bubble.left.and.bubble.right")
                         .font(.system(size: 28))
@@ -41,6 +45,7 @@ struct ChatHistoryView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 60)
+                .transition(.blurReplace)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -60,6 +65,7 @@ struct ChatHistoryView: View {
                         }
                     }
                 }
+                .transition(.blurReplace)
             }
 
             GradientSeparator()
@@ -85,14 +91,41 @@ struct ChatHistoryView: View {
             Spacer()
 
             if !messages.isEmpty {
-                Text("\(messages.count) messages")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule().fill(Theme.surface)
-                    )
+                HStack(spacing: 4) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showFileChanges = false
+                        }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Text("\(messages.count) messages")
+                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        }
+                        .foregroundStyle(!showFileChanges ? Theme.textPrimary : Theme.textSecondary.opacity(0.4))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(!showFileChanges ? Theme.surface : Theme.surface.opacity(0.4)))
+                    }
+                    .buttonStyle(.plain)
+
+                    if session.totalFilesChanged > 0 {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showFileChanges = true
+                            }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Text("\(session.totalFilesChanged) diff")
+                                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            }
+                            .foregroundStyle(showFileChanges ? Theme.textPrimary : Theme.textSecondary.opacity(0.4))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(showFileChanges ? Theme.surface : Theme.surface.opacity(0.4)))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
 
             Button {
@@ -173,6 +206,50 @@ struct ChatHistoryView: View {
 
             if !isUser { Spacer(minLength: 40) }
         }
+    }
+
+    // MARK: - File Changes Panel
+
+    private var fileChangesPanel: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(Array(session.fileChanges.enumerated()), id: \.element.id) { index, change in
+                    HStack(spacing: 6) {
+                        Text(change.fileName)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Theme.textPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+
+                        Spacer()
+
+                        if change.linesAdded > 0 {
+                            Text("+\(change.linesAdded)")
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Color.green.opacity(0.8))
+                        }
+                        if change.linesRemoved > 0 {
+                            Text("-\(change.linesRemoved)")
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Color.red.opacity(0.8))
+                        }
+
+                        Text(change.lastOperation)
+                            .font(.system(size: 10))
+                            .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                    }
+                    .padding(.horizontal, Spacing.m)
+                    .padding(.vertical, 4)
+
+                    if index < session.fileChanges.count - 1 {
+                        Divider()
+                            .overlay(Theme.border.opacity(0.5))
+                    }
+                }
+            }
+        }
+        .frame(maxHeight: 440)
+        .background(Theme.chatPreviewBg)
     }
 
     // MARK: - Footer
