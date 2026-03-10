@@ -10,13 +10,13 @@ import SwiftUI
 enum NavigationScreen: Equatable {
     case home
     case projectDetail(Project)
-    case sessionChat(Session, Project)
+    case sessionChat(Session, Project, searchQuery: String? = nil)
 
     static func == (lhs: NavigationScreen, rhs: NavigationScreen) -> Bool {
         switch (lhs, rhs) {
         case (.home, .home): return true
         case (.projectDetail(let a), .projectDetail(let b)): return a.id == b.id
-        case (.sessionChat(let a, _), .sessionChat(let b, _)): return a.id == b.id
+        case (.sessionChat(let a, _, _), .sessionChat(let b, _, _)): return a.id == b.id
         default: return false
         }
     }
@@ -47,10 +47,10 @@ struct ContentView: View {
                             screen = .projectDetail(project)
                         }
                     },
-                    onSelectSession: { session, project in
+                    onSelectSession: { session, project, searchQuery in
                         chatEnteredFromHome = true
                         withAnimation(animation) {
-                            screen = .sessionChat(session, project)
+                            screen = .sessionChat(session, project, searchQuery: searchQuery)
                         }
                     }
                 )
@@ -79,12 +79,13 @@ struct ContentView: View {
                 .zIndex(1)
                 .transition(.opacity)
 
-            case .sessionChat(let session, let project):
+            case .sessionChat(let session, let project, let searchQuery):
                 ChatHistoryView(
                     session: session,
                     project: project,
                     store: store,
                     settings: settings,
+                    searchQuery: searchQuery,
                     onBack: {
                         withAnimation(animation) {
                             screen = chatEnteredFromHome ? .home : .projectDetail(project)
@@ -100,7 +101,7 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .onKeyPress(.escape) {
             switch screen {
-            case .sessionChat(_, let project):
+            case .sessionChat(_, let project, _):
                 withAnimation(animation) {
                     screen = chatEnteredFromHome ? .home : .projectDetail(project)
                 }

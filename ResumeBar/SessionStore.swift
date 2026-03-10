@@ -16,8 +16,10 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
     var projects: [Project] = []
     var searchText: String = ""
     var hasMore: Bool = false
+    var isIndexing: Bool = false
 
     let aliasStore: AliasStore
+    @ObservationIgnored let searchIndex = SearchIndex()
 
     func displayTitle(for session: Session) -> String {
         aliasStore.alias(for: session.id) ?? session.title
@@ -202,6 +204,7 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
 
     init(aliasStore: AliasStore) {
         self.aliasStore = aliasStore
+        searchIndex.open()
         load()
         startFileWatcher()
     }
@@ -211,6 +214,7 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
         if fileDescriptor >= 0 {
             close(fileDescriptor)
         }
+        searchIndex.close()
     }
 
     private func startFileWatcher() {
@@ -256,6 +260,7 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
                 self.projects = result.projects
                 self.hasMore = result.hasMore
                 self.chatPreviewCache = [:]
+                self.reindexIfNeeded()
             }
         }
     }
@@ -445,6 +450,85 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
             totalTokens: sessionTokens,
             fileChanges: fileChanges
         )
+    }
+    // MARK: - Full-Text Search
+
+    func searchContent(query: String) -> [SearchResult] {
+        searchIndex.search(query: query)
+    }
+
+    func reindexIfNeeded() {
+        let projects = self.projects
+        let index = self.searchIndex
+        isIndexing = true
+
+        Task.detached(priority: .utility) {
+            var allSessionInfo: [(id: String, project: String, lastMod: Date, url: URL)] = []
+            var existingIds: Set<String> = []
+
+            for project in projects {
+                for session in project.sessions {
+                    existingIds.insert(session.id)
+                    let modDate = session.lastActivity
+                    allSessionInfo.append((session.id, project.displayName, modDate, session.jsonlURL))
+                }
+            }
+
+            for info in allSessionInfo {
+                if index.needsReindex(sessionId: info.id, lastModified: info.lastMod) {
+                    let messages = Self.parseAllMessagesForIndexing(url: info.url)
+                    index.indexSession(sessionId: info.id, project: info.project, messages: messages, lastModified: info.lastMod)
+                }
+            }
+
+            index.pruneDeletedSessions(existingIds: existingIds)
+
+            await MainActor.run { [weak self] in
+                self?.isIndexing = false
+            }
+        }
+    }
+
+    nonisolated private static func parseAllMessagesForIndexing(url: URL) -> [(role: String, content: String)] {
+        guard let data = try? Data(contentsOf: url) else { return [] }
+        let content = String(decoding: data, as: UTF8.self)
+        let lines = content.components(separatedBy: .newlines)
+        var result: [(role: String, content: String)] = []
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty,
+                  let lineData = trimmed.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+                  let type = json["type"] as? String
+            else { continue }
+
+            if ignoredMessageTypes.contains(type) { continue }
+
+            guard type == "user" || type == "assistant",
+                  let message = json["message"] as? [String: Any]
+            else { continue }
+
+            let text: String?
+            if let s = message["content"] as? String {
+                text = s
+            } else if let parts = message["content"] as? [[String: Any]] {
+                let texts = parts.compactMap { part -> String? in
+                    guard part["type"] as? String == "text" else { return nil }
+                    return part["text"] as? String
+                }
+                let joined = texts.joined(separator: "\n")
+                text = joined.isEmpty ? nil : joined
+            } else {
+                text = nil
+            }
+
+            if let text, let cleaned = MessageSanitizer.clean(text), !cleaned.isEmpty {
+                result.append((role: type, content: cleaned))
+            }
+        }
+
+        return result
     }
 }
 

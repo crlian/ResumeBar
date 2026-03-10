@@ -11,17 +11,19 @@ struct ChatHistoryView: View {
     let project: Project
     let store: SessionStore
     let settings: AppSettings
+    let searchQuery: String?
     var onBack: () -> Void
 
     @State private var messages: [ChatMessage]
     @State private var resumeFeedback = false
     @State private var showFileChanges = false
 
-    init(session: Session, project: Project, store: SessionStore, settings: AppSettings, onBack: @escaping () -> Void) {
+    init(session: Session, project: Project, store: SessionStore, settings: AppSettings, searchQuery: String? = nil, onBack: @escaping () -> Void) {
         self.session = session
         self.project = project
         self.store = store
         self.settings = settings
+        self.searchQuery = searchQuery
         self.onBack = onBack
         self._messages = State(initialValue: store.loadAllChatMessages(for: session))
     }
@@ -60,7 +62,14 @@ struct ChatHistoryView: View {
                     }
                     .frame(maxHeight: 440)
                     .onAppear {
-                        if let last = messages.last {
+                        if let query = searchQuery, !query.isEmpty {
+                            let queryLower = query.lowercased()
+                            if let match = messages.first(where: { $0.text.lowercased().contains(queryLower) }) {
+                                proxy.scrollTo(match.id, anchor: .center)
+                            } else if let last = messages.last {
+                                proxy.scrollTo(last.id, anchor: .bottom)
+                            }
+                        } else if let last = messages.last {
                             proxy.scrollTo(last.id, anchor: .bottom)
                         }
                     }
@@ -83,12 +92,14 @@ struct ChatHistoryView: View {
                         .font(.system(size: 11, weight: .semibold))
                     Text(project.displayName)
                         .font(Theme.caption)
+                        .lineLimit(1)
                 }
                 .foregroundStyle(Theme.textSecondary)
             }
             .buttonStyle(.plain)
+            .layoutPriority(-1)
 
-            Spacer()
+            Spacer(minLength: 4)
 
             if !messages.isEmpty {
                 HStack(spacing: 4) {

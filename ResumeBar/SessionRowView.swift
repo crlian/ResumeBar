@@ -12,6 +12,7 @@ struct SessionRowView: View {
     let displayTitle: String
     let isPinned: Bool
     let isSelected: Bool
+    var snippet: String?
     var onSelect: (() -> Void)?
     var onResume: () -> Void
     var onTogglePin: () -> Void
@@ -52,6 +53,13 @@ struct SessionRowView: View {
                     Text("\(SessionStore.formatTokens(tokens)) tokens")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                }
+
+                if let snippet {
+                    highlightedSnippet(snippet)
+                        .font(.system(size: 11))
+                        .italic()
+                        .lineLimit(2)
                 }
             }
 
@@ -126,5 +134,40 @@ struct SessionRowView: View {
 
     private func cancelRename() {
         isRenaming = false
+    }
+
+    private func highlightedSnippet(_ raw: String) -> Text {
+        var result = Text("")
+        var remaining = raw[...]
+
+        while let openBracket = remaining.firstIndex(of: "[") {
+            // Text before the match
+            let before = remaining[remaining.startIndex..<openBracket]
+            if !before.isEmpty {
+                result = result + Text(String(before))
+                    .foregroundStyle(Theme.textSecondary.opacity(0.5))
+            }
+
+            let afterOpen = remaining.index(after: openBracket)
+            if let closeBracket = remaining[afterOpen...].firstIndex(of: "]") {
+                let matched = remaining[afterOpen..<closeBracket]
+                result = result + Text(String(matched))
+                    .foregroundStyle(Theme.accent)
+                    .bold()
+                remaining = remaining[remaining.index(after: closeBracket)...]
+            } else {
+                // No closing bracket — render rest as plain
+                result = result + Text(String(remaining[openBracket...]))
+                    .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                remaining = remaining[remaining.endIndex...]
+            }
+        }
+
+        if !remaining.isEmpty {
+            result = result + Text(String(remaining))
+                .foregroundStyle(Theme.textSecondary.opacity(0.5))
+        }
+
+        return result
     }
 }

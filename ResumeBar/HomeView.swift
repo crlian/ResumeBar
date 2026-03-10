@@ -12,7 +12,11 @@ struct HomeView: View {
     let settings: AppSettings
 
     var onSelectProject: (Project) -> Void
-    var onSelectSession: ((Session, Project) -> Void)?
+    var onSelectSession: ((Session, Project, String?) -> Void)?
+
+    @State private var searchResults: [SearchResult] = []
+    @State private var isSearchingContent = false
+    @State private var searchTask: Task<Void, Never>?
 
     @FocusState private var searchFocused: Bool
 
@@ -51,12 +55,44 @@ struct HomeView: View {
 
             if store.projects.isEmpty {
                 emptyState(icon: "clock.badge.questionmark", text: "No sessions found")
-            } else if filteredProjects.isEmpty && filteredPinned.isEmpty && filteredRecent.isEmpty {
+            } else if filteredProjects.isEmpty && filteredPinned.isEmpty && filteredRecent.isEmpty && searchResults.isEmpty && !isSearchingContent {
                 emptyState(icon: "magnifyingglass", text: "No matching sessions")
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        if !filteredPinned.isEmpty {
+                        if store.isIndexing && store.searchText.count >= 3 {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Indexing sessions...")
+                                    .font(Theme.caption)
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                            .padding(.top, Spacing.m)
+                            .padding(.leading, Spacing.xs)
+                        }
+
+                        if !searchResults.isEmpty {
+                            sectionHeader("SEARCH RESULTS")
+                            ForEach(searchResults) { result in
+                                if let (project, session) = findSession(id: result.sessionId) {
+                                    SessionRowView(
+                                        session: session,
+                                        projectName: project.displayName,
+                                        displayTitle: store.displayTitle(for: session),
+                                        isPinned: pinStore.isPinned(session.id),
+                                        isSelected: false,
+                                        snippet: result.snippet,
+                                        onSelect: { onSelectSession?(session, project, store.searchText) },
+                                        onResume: { resumeSession(session) },
+                                        onTogglePin: { pinStore.toggle(session.id) },
+                                        onRename: { aliasStore.set($0, for: session.id) }
+                                    )
+                                }
+                            }
+                        }
+
+                        if !filteredPinned.isEmpty && searchResults.isEmpty {
                             sectionHeader("PINNED")
                             ForEach(filteredPinned, id: \.session.id) { pair in
                                 SessionRowView(
@@ -65,7 +101,7 @@ struct HomeView: View {
                                     displayTitle: store.displayTitle(for: pair.session),
                                     isPinned: true,
                                     isSelected: false,
-                                    onSelect: { onSelectSession?(pair.session, pair.project) },
+                                    onSelect: { onSelectSession?(pair.session, pair.project, nil) },
                                     onResume: { resumeSession(pair.session) },
                                     onTogglePin: { pinStore.toggle(pair.session.id) },
                                     onRename: { aliasStore.set($0, for: pair.session.id) }
@@ -73,7 +109,7 @@ struct HomeView: View {
                             }
                         }
 
-                        if !filteredRecent.isEmpty {
+                        if !filteredRecent.isEmpty && searchResults.isEmpty {
                             sectionHeader("RECENT")
                             ForEach(filteredRecent, id: \.session.id) { pair in
                                 SessionRowView(
@@ -82,7 +118,7 @@ struct HomeView: View {
                                     displayTitle: store.displayTitle(for: pair.session),
                                     isPinned: pinStore.isPinned(pair.session.id),
                                     isSelected: false,
-                                    onSelect: { onSelectSession?(pair.session, pair.project) },
+                                    onSelect: { onSelectSession?(pair.session, pair.project, nil) },
                                     onResume: { resumeSession(pair.session) },
                                     onTogglePin: { pinStore.toggle(pair.session.id) },
                                     onRename: { aliasStore.set($0, for: pair.session.id) }
@@ -90,7 +126,7 @@ struct HomeView: View {
                             }
                         }
 
-                        if !filteredProjects.isEmpty {
+                        if !filteredProjects.isEmpty && searchResults.isEmpty {
                             sectionHeader("PROJECTS")
                             ForEach(filteredProjects) { project in
                                 projectRow(project)
@@ -107,6 +143,23 @@ struct HomeView: View {
             keyboardHints
         }
         .onAppear { searchFocused = true }
+        .onChange(of: store.searchText) { _, newValue in
+            searchTask?.cancel()
+            if newValue.count < 3 {
+                searchResults = []
+                isSearchingContent = false
+                return
+            }
+            isSearchingContent = true
+            searchTask = Task {
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled else { return }
+                let results = store.searchContent(query: newValue)
+                guard !Task.isCancelled else { return }
+                searchResults = results
+                isSearchingContent = false
+            }
+        }
     }
 
     // MARK: - Search Bar
@@ -218,6 +271,17 @@ struct HomeView: View {
         }
         .padding(.horizontal, Spacing.m)
         .padding(.vertical, Spacing.xs)
+    }
+
+    // MARK: - Helpers
+
+    private func findSession(id: String) -> (Project, Session)? {
+        for project in store.projects {
+            if let session = project.sessions.first(where: { $0.id == id }) {
+                return (project, session)
+            }
+        }
+        return nil
     }
 
     // MARK: - Actions
