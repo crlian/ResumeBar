@@ -15,11 +15,9 @@ struct SessionRowView: View {
     var onSelect: (() -> Void)?
     var onResume: () -> Void
     var onTogglePin: () -> Void
-    var onDelete: () -> Void
     var onRename: (String) -> Void
 
     @State private var isHovered = false
-    @State private var showDeleteConfirm = false
     @State private var resumeFeedback = false
     @State private var isRenaming = false
     @State private var renameText = ""
@@ -27,39 +25,29 @@ struct SessionRowView: View {
 
     var body: some View {
         HStack(spacing: Spacing.s) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: Spacing.xs) {
-                    if let projectName {
-                        Text(projectName)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Theme.accent)
-                        Text("\u{2014}")
-                            .font(Theme.caption)
-                            .foregroundStyle(Theme.accent.opacity(0.5))
-                    }
-
-                    if isRenaming {
-                        TextField("Session name", text: $renameText)
-                            .textFieldStyle(.plain)
-                            .font(Theme.title)
-                            .foregroundStyle(Theme.textPrimary)
-                            .focused($renameFocused)
-                            .onSubmit { commitRename() }
-                            .onExitCommand { cancelRename() }
-                    } else {
-                        Text(displayTitle)
-                            .font(Theme.title)
-                            .foregroundStyle(Theme.textPrimary)
-                            .lineLimit(1)
-                    }
-                }
-
-                if !session.preview.isEmpty && !isRenaming {
-                    Text(session.preview)
-                        .font(Theme.preview)
-                        .foregroundStyle(Theme.textSecondary)
+            VStack(alignment: .leading, spacing: 3) {
+                if let projectName {
+                    Text(projectName)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Theme.accent.opacity(0.7))
                         .lineLimit(1)
                 }
+
+                if isRenaming {
+                    TextField("Session name", text: $renameText)
+                        .textFieldStyle(.plain)
+                        .font(Theme.title)
+                        .foregroundStyle(Theme.textPrimary)
+                        .focused($renameFocused)
+                        .onSubmit { commitRename() }
+                        .onExitCommand { cancelRename() }
+                } else {
+                    Text(displayTitle)
+                        .font(Theme.title)
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+
             }
 
             Spacer()
@@ -69,21 +57,6 @@ struct SessionRowView: View {
                     .font(Theme.caption)
                     .foregroundStyle(Theme.textSecondary)
                     .transition(.opacity)
-
-                Button {
-                    startRename()
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 10))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 24, height: 24)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.white.opacity(0.06))
-                        )
-                }
-                .buttonStyle(.plain)
-                .transition(.opacity)
 
                 Button {
                     onResume()
@@ -119,11 +92,11 @@ struct SessionRowView: View {
         .onTapGesture { onSelect?() }
         .onHover { hovering in isHovered = hovering }
         .contextMenu {
-            Button("Resume Session") { onResume() }
             Button("Rename...") { startRename() }
-            Button("Copy First Prompt") {
+            Button("Copy Resume Command") {
+                let command = "cd '\(session.cwd)' && claude --resume \(session.id)"
                 NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(session.title, forType: .string)
+                NSPasteboard.general.setString(command, forType: .string)
             }
             if !session.cwd.isEmpty {
                 Button("Open Folder") {
@@ -132,14 +105,6 @@ struct SessionRowView: View {
             }
             Divider()
             Button(isPinned ? "Unpin" : "Pin") { onTogglePin() }
-            Divider()
-            Button("Delete Session", role: .destructive) { showDeleteConfirm = true }
-        }
-        .alert("Delete Session?", isPresented: $showDeleteConfirm) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) { onDelete() }
-        } message: {
-            Text("This will permanently delete the session file.")
         }
     }
 

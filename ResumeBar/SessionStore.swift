@@ -158,7 +158,9 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
                let message = json["message"] as? [String: Any],
                let text = extractTextFromMessage(message), !text.isEmpty {
                 let role: ChatMessage.Role = type == "user" ? .user : .assistant
-                messages.append(ChatMessage(role: role, text: text))
+                if let cleaned = MessageSanitizer.clean(text) {
+                    messages.append(ChatMessage(role: role, text: cleaned))
+                }
             }
         }
 
@@ -194,13 +196,6 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
             return joined.isEmpty ? nil : joined
         }
         return nil
-    }
-
-    // MARK: - Delete
-
-    func deleteSession(_ session: Session) {
-        try? FileManager.default.removeItem(at: session.jsonlURL)
-        load()
     }
 
     // MARK: - Init
@@ -390,7 +385,7 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
             } else {
                 title = nil
             }
-            guard let title, !title.isEmpty else { continue }
+            guard let title, let cleanTitle = MessageSanitizer.clean(title), !cleanTitle.isEmpty else { continue }
 
             var timestamp = lastActivity
             if let ts = json["timestamp"] as? String {
@@ -398,11 +393,11 @@ private let ignoredMessageTypes: Set<String> = ["tool_use", "tool_result", "thin
             }
 
             let cwd = json["cwd"] as? String ?? ""
-            let preview = String(title.prefix(80))
+            let preview = String(cleanTitle.prefix(80))
 
             return Session(
                 id: sessionId,
-                title: title,
+                title: cleanTitle,
                 preview: preview,
                 timestamp: timestamp,
                 lastActivity: lastActivity,

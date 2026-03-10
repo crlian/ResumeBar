@@ -3,6 +3,7 @@
 //  ResumeBar
 //
 
+import MarkdownUI
 import SwiftUI
 
 extension Color {
@@ -154,5 +155,21 @@ extension View {
 
     func hoverEffect() -> some View {
         modifier(HoverModifier())
+    }
+
+    func markdownStyle(textColor: Color = Theme.textPrimary) -> some View {
+        self
+            .markdownTextStyle {
+                FontSize(12)
+                ForegroundColor(textColor)
+            }
+            .markdownBlockStyle(\.codeBlock) { configuration in
+                configuration.label
+                    .padding(Spacing.s)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.black.opacity(0.3))
+                    )
+            }
     }
 }

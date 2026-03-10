@@ -66,4 +66,4 @@ Navigation state is a simple `NavigationScreen` enum in `ContentView`. Escape ke
 - All `@Observable` classes (`SessionStore`, `AliasStore`, `PinStore`, `AppSettings`) are injected from `ResumeBarApp` and passed down as parameters — no environment objects
 - `Theme` enum centralizes all colors (Claude dark palette with coral accent `#D77757`), typography, and spacing constants
 - `CardStyle` and `HoverModifier` are reusable view modifiers applied via `.cardStyle()` and `.hoverEffect()`
-- `TerminalLauncher` supports Terminal.app (AppleScript), iTerm2 (AppleScript), and Ghostty (temp shell script + `open -na`)
+- `TerminalLauncher` supports Terminal.app (AppleScript), iTerm2 (AppleScript), and Ghostty (AppleScript)

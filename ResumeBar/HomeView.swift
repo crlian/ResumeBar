@@ -53,7 +53,6 @@ struct HomeView: View {
                                     onSelect: { onSelectSession?(pair.session, pair.project) },
                                     onResume: { resumeSession(pair.session) },
                                     onTogglePin: { pinStore.toggle(pair.session.id) },
-                                    onDelete: { store.deleteSession(pair.session) },
                                     onRename: { aliasStore.set($0, for: pair.session.id) }
                                 )
                             }
@@ -71,7 +70,6 @@ struct HomeView: View {
                                     onSelect: { onSelectSession?(pair.session, pair.project) },
                                     onResume: { resumeSession(pair.session) },
                                     onTogglePin: { pinStore.toggle(pair.session.id) },
-                                    onDelete: { store.deleteSession(pair.session) },
                                     onRename: { aliasStore.set($0, for: pair.session.id) }
                                 )
                             }
@@ -174,6 +172,7 @@ struct HomeView: View {
             }
             .padding(.horizontal, Theme.itemH)
             .padding(.vertical, Theme.itemV)
+            .contentShape(Rectangle())
             .hoverEffect()
         }
         .buttonStyle(.plain)

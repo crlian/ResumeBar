@@ -97,26 +97,22 @@ struct TerminalLauncher {
     // MARK: - Process-based Terminals
 
     private static func launchGhostty(sessionId: String, cwd: String) {
-        // Ghostty's -e only accepts a single argument (the executable path),
-        // so we write a small launch script that -e can point to.
-        let escaped = shellEscape(cwd)
-        let scriptPath = "/tmp/resumebar-\(sessionId).sh"
-        let scriptContent = "#!/bin/zsh -l\ncd '\(escaped)' && claude --resume \(sessionId)\nexec $SHELL\n"
-
-        do {
-            try scriptContent.write(toFile: scriptPath, atomically: true, encoding: .utf8)
-            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptPath)
-        } catch {
-            print("Failed to write Ghostty launch script: \(error)")
-            return
-        }
-
-        Task.detached {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-            process.arguments = ["-na", "Ghostty", "--args", "-e", scriptPath]
-            try? process.run()
-        }
+        let escapedCwd = appleScriptEscape(cwd)
+        let escapedInput = appleScriptEscape("clear && claude --resume \(sessionId)\n")
+        let script = """
+        tell application "Ghostty"
+            activate
+            set cfg to new surface configuration
+            set initial working directory of cfg to "\(escapedCwd)"
+            set initial input of cfg to "\(escapedInput)"
+            if (count of windows) > 0 then
+                new tab in front window with configuration cfg
+            else
+                new window with configuration cfg
+            end if
+        end tell
+        """
+        runAppleScript(script)
     }
 
     private static func launchKitty(sessionId: String, cwd: String) {

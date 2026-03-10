@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		DB7DDD3C2F5D54D8001571C3 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = DB7DDD3B2F5D54D8001571C3 /* MarkdownUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		DB2AFE382F5911E1006646D0 /* ResumeBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ResumeBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB7DDD3C2F5D54D8001571C3 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = ResumeBar;
 			packageProductDependencies = (
+				DB7DDD3B2F5D54D8001571C3 /* MarkdownUI */,
 			);
 			productName = ResumeBar;
 			productReference = DB2AFE382F5911E1006646D0 /* ResumeBar.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = DB2AFE2F2F5911E1006646D0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DB7DDD3A2F5D54D8001571C3 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DB2AFE392F5911E1006646D0 /* Products */;
 			projectDirPath = "";
@@ -337,6 +346,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DB7DDD3A2F5D54D8001571C3 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DB7DDD3B2F5D54D8001571C3 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB7DDD3A2F5D54D8001571C3 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DB2AFE302F5911E1006646D0 /* Project object */;
 }

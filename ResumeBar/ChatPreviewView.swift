@@ -47,19 +47,7 @@ struct ChatPreviewView: View {
                 )
         case .assistant:
             Markdown(message.text)
-                .markdownTextStyle {
-                    FontSize(12)
-                    ForegroundColor(Theme.textSecondary)
-                }
-                .markdownBlockStyle(\.codeBlock) { configuration in
-                    configuration.label
-                        .padding(Spacing.s)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.black.opacity(0.3))
-                        )
-                }
-                .lineLimit(3)
+                .markdownStyle(textColor: Theme.textSecondary)
                 .padding(.vertical, Spacing.xs)
         }
     }

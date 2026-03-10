@@ -70,7 +70,6 @@ struct ProjectDetailView: View {
                                 onSelect: { onSelectSession(session) },
                                 onResume: { resumeSession(session) },
                                 onTogglePin: { pinStore.toggle(session.id) },
-                                onDelete: { store.deleteSession(session) },
                                 onRename: { aliasStore.set($0, for: session.id) }
                             )
                         }

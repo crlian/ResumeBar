@@ -45,8 +45,8 @@ struct ChatHistoryView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: Spacing.s) {
-                            ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
-                                chatBubble(message, index: index)
+                            ForEach(messages) { message in
+                                chatBubble(message)
                                     .id(message.id)
                             }
                         }
@@ -127,7 +127,7 @@ struct ChatHistoryView: View {
     // MARK: - Chat Bubble
 
     @ViewBuilder
-    private func chatBubble(_ message: ChatMessage, index: Int) -> some View {
+    private func chatBubble(_ message: ChatMessage) -> some View {
         let isUser = message.role == .user
 
         HStack {
@@ -148,37 +148,27 @@ struct ChatHistoryView: View {
                         Text(message.text)
                             .font(Theme.messageBody)
                             .foregroundStyle(Color.white)
+                            .textSelection(.enabled)
+                            .lineSpacing(3)
                     } else {
                         Markdown(message.text)
-                            .markdownTextStyle {
-                                FontSize(12)
-                                ForegroundColor(Theme.textPrimary)
-                            }
-                            .markdownBlockStyle(\.codeBlock) { configuration in
-                                configuration.label
-                                    .padding(Spacing.s)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                            .fill(Color.black.opacity(0.3))
-                                    )
-                            }
+                            .markdownStyle()
+                            .textSelection(.enabled)
                     }
                 }
-                    .textSelection(.enabled)
-                    .lineSpacing(3)
-                    .padding(.horizontal, Spacing.s + 2)
-                    .padding(.vertical, Spacing.s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(isUser ? Color(hex: "#3D2218") : Color(hex: "#1E1E1E"))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(
-                                isUser ? Theme.accent.opacity(0.3) : Color.white.opacity(0.08),
-                                lineWidth: 1
-                            )
-                    )
+                .padding(.horizontal, Spacing.s + 2)
+                .padding(.vertical, Spacing.s)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(isUser ? Color(hex: "#3D2218") : Color(hex: "#1E1E1E"))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(
+                            isUser ? Theme.accent.opacity(0.3) : Color.white.opacity(0.08),
+                            lineWidth: 1
+                        )
+                )
             }
 
             if !isUser { Spacer(minLength: 40) }
