@@ -19,7 +19,7 @@ struct ChatPreviewView: View {
             if totalCount > messages.count {
                 Text("\u{00B7}\u{00B7}\u{00B7} \(totalCount - messages.count) more messages")
                     .font(Theme.caption)
-                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
+                    .foregroundStyle(Theme.textTertiary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, Spacing.xs)
             }

@@ -32,26 +32,16 @@ struct HomeView: View {
         store.filteredProjects(query: store.searchText)
     }
 
+    private var searchPlaceholder: String {
+        if store.totalSessions > 0 {
+            return "\(store.totalSessions) sessions · \(SessionStore.formatTokens(store.totalTokens)) tokens"
+        }
+        return "Search sessions..."
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             searchBar
-
-            GradientSeparator()
-
-            if store.totalSessions > 0 {
-                HStack(spacing: 4) {
-                    Text("\(store.totalSessions) sessions")
-                    Text("·").foregroundStyle(Theme.accent.opacity(0.4))
-                    Text("\(SessionStore.formatTokens(store.totalTokens)) tokens")
-                    Text("·").foregroundStyle(Theme.accent.opacity(0.4))
-                    Text("\(store.totalProjects) projects")
-                }
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(Theme.textSecondary.opacity(0.6))
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 4)
-                .padding(.bottom, 8)
-            }
 
             if store.projects.isEmpty {
                 emptyState(icon: "clock.badge.questionmark", text: "No sessions found")
@@ -139,7 +129,7 @@ struct HomeView: View {
                 .frame(maxHeight: 480)
             }
 
-            GradientSeparator()
+            Divider()
             keyboardHints
         }
         .onAppear { searchFocused = true }
@@ -169,11 +159,20 @@ struct HomeView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(Theme.textSecondary)
                 .font(.system(size: 13))
-            TextField("Search sessions...", text: $store.searchText)
+            TextField(searchPlaceholder, text: $store.searchText)
                 .textFieldStyle(.plain)
                 .font(Theme.searchFont)
                 .foregroundStyle(Theme.textPrimary)
                 .focused($searchFocused)
+
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                Image(systemName: "power")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            .buttonStyle(.plain)
 
             SettingsLink {
                 Image(systemName: "gearshape")
@@ -189,7 +188,7 @@ struct HomeView: View {
                 .fill(Theme.searchBg)
                 .overlay(
                     RoundedRectangle(cornerRadius: Theme.searchRadius, style: .continuous)
-                        .stroke(Theme.searchBorder, lineWidth: 1)
+                        .stroke(searchFocused ? Theme.accent.opacity(0.5) : Theme.searchBorder, lineWidth: searchFocused ? 1.5 : 1)
                 )
         )
         .padding(.horizontal, Spacing.m)
@@ -202,7 +201,7 @@ struct HomeView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(Theme.overline)
-            .foregroundStyle(Theme.accent.opacity(0.7))
+            .foregroundStyle(Theme.textTertiary)
             .padding(.top, Spacing.m)
             .padding(.bottom, Spacing.xs)
             .padding(.leading, Spacing.xs)
@@ -227,12 +226,7 @@ struct HomeView: View {
 
                 Text("\(project.sessions.count)")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Theme.accent.opacity(0.85))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule().fill(Theme.accentSubtle)
-                    )
+                    .foregroundStyle(Theme.textTertiary)
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
@@ -249,16 +243,15 @@ struct HomeView: View {
     // MARK: - Empty State
 
     private func emptyState(icon: String, text: String) -> some View {
-        VStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 32))
-                .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                .font(.system(size: 14))
             Text(text)
-                .foregroundStyle(Theme.textSecondary)
                 .font(Theme.caption)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.vertical, 40)
+        .foregroundStyle(Theme.textSecondary)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.l)
     }
 
     // MARK: - Keyboard Hints
@@ -267,7 +260,7 @@ struct HomeView: View {
         HStack {
             Text("\u{2195} Navigate  \u{23CE} Open  \u{238B} Close")
                 .font(Theme.caption)
-                .foregroundStyle(Theme.textSecondary.opacity(0.6))
+                .foregroundStyle(Theme.textTertiary)
         }
         .padding(.horizontal, Spacing.m)
         .padding(.vertical, Spacing.xs)

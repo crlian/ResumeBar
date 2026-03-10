@@ -31,22 +31,21 @@ struct ChatHistoryView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            GradientSeparator()
+            Divider()
 
             if showFileChanges {
                 fileChangesPanel
                     .transition(.blurReplace)
             } else if messages.isEmpty {
-                VStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "bubble.left.and.bubble.right")
-                        .font(.system(size: 28))
-                        .foregroundStyle(Theme.textSecondary.opacity(0.4))
+                        .font(.system(size: 14))
                     Text("No messages in this session")
                         .font(Theme.caption)
-                        .foregroundStyle(Theme.textSecondary)
                 }
+                .foregroundStyle(Theme.textSecondary)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 60)
+                .padding(.vertical, Spacing.l)
                 .transition(.blurReplace)
             } else {
                 ScrollViewReader { proxy in
@@ -77,7 +76,7 @@ struct ChatHistoryView: View {
                 .transition(.blurReplace)
             }
 
-            GradientSeparator()
+            Divider()
             footer
         }
     }
@@ -112,7 +111,7 @@ struct ChatHistoryView: View {
                             Text("\(messages.count) messages")
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                         }
-                        .foregroundStyle(!showFileChanges ? Theme.textPrimary : Theme.textSecondary.opacity(0.4))
+                        .foregroundStyle(!showFileChanges ? Theme.textPrimary : Theme.textTertiary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(!showFileChanges ? Theme.surface : Theme.surface.opacity(0.4)))
@@ -129,7 +128,7 @@ struct ChatHistoryView: View {
                                 Text("\(session.totalFilesChanged) diff")
                                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                             }
-                            .foregroundStyle(showFileChanges ? Theme.textPrimary : Theme.textSecondary.opacity(0.4))
+                            .foregroundStyle(showFileChanges ? Theme.textPrimary : Theme.textTertiary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(Capsule().fill(showFileChanges ? Theme.surface : Theme.surface.opacity(0.4)))
@@ -175,47 +174,36 @@ struct ChatHistoryView: View {
         let isUser = message.role == .user
 
         HStack {
-            if isUser { Spacer(minLength: 40) }
+            if isUser { Spacer(minLength: 20) }
 
-            VStack(alignment: isUser ? .trailing : .leading, spacing: 3) {
-                HStack(spacing: 4) {
-                    Image(systemName: isUser ? "person.fill" : "sparkle")
-                        .font(.system(size: 9, weight: .semibold))
-                    Text(isUser ? "You" : "Claude")
-                        .font(.system(size: 11, weight: .semibold))
+            Group {
+                if isUser {
+                    Text(message.text)
+                        .font(Theme.messageBody)
+                        .foregroundStyle(Color.white)
+                        .textSelection(.enabled)
+                        .lineSpacing(3)
+                } else {
+                    Markdown(message.text)
+                        .markdownStyle()
+                        .textSelection(.enabled)
                 }
-                .foregroundStyle(isUser ? Theme.accent : Color(hex: "#8B9DC3"))
-                .padding(.horizontal, 4)
-
-                Group {
-                    if isUser {
-                        Text(message.text)
-                            .font(Theme.messageBody)
-                            .foregroundStyle(Color.white)
-                            .textSelection(.enabled)
-                            .lineSpacing(3)
-                    } else {
-                        Markdown(message.text)
-                            .markdownStyle()
-                            .textSelection(.enabled)
-                    }
-                }
-                .padding(.horizontal, Spacing.s + 2)
-                .padding(.vertical, Spacing.s)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(isUser ? Color(hex: "#3D2218") : Color(hex: "#1E1E1E"))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(
-                            isUser ? Theme.accent.opacity(0.3) : Color.white.opacity(0.08),
-                            lineWidth: 1
-                        )
-                )
             }
+            .padding(.horizontal, Spacing.s + 2)
+            .padding(.vertical, Spacing.s)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isUser ? Theme.userBubbleBg : Theme.claudeBubbleBg)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(
+                        isUser ? Theme.accent.opacity(0.3) : Color.white.opacity(0.08),
+                        lineWidth: 1
+                    )
+            )
 
-            if !isUser { Spacer(minLength: 40) }
+            if !isUser { Spacer(minLength: 20) }
         }
     }
 
@@ -237,24 +225,23 @@ struct ChatHistoryView: View {
                         if change.linesAdded > 0 {
                             Text("+\(change.linesAdded)")
                                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Color.green.opacity(0.8))
+                                .foregroundStyle(Theme.diffAdded)
                         }
                         if change.linesRemoved > 0 {
                             Text("-\(change.linesRemoved)")
                                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Color.red.opacity(0.8))
+                                .foregroundStyle(Theme.diffRemoved)
                         }
 
                         Text(change.lastOperation)
                             .font(.system(size: 10))
-                            .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                            .foregroundStyle(Theme.textTertiary)
                     }
                     .padding(.horizontal, Spacing.m)
                     .padding(.vertical, 4)
 
                     if index < session.fileChanges.count - 1 {
                         Divider()
-                            .overlay(Theme.border.opacity(0.5))
                     }
                 }
             }
@@ -269,14 +256,14 @@ struct ChatHistoryView: View {
         HStack(spacing: 0) {
             Text(store.displayTitle(for: session))
                 .font(Theme.caption)
-                .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                .foregroundStyle(Theme.textTertiary)
                 .lineLimit(1)
 
             Spacer()
 
             Text("\u{238B} Back")
                 .font(Theme.caption)
-                .foregroundStyle(Theme.textSecondary.opacity(0.6))
+                .foregroundStyle(Theme.textTertiary)
         }
         .padding(.horizontal, Spacing.m)
         .padding(.vertical, Spacing.xs)

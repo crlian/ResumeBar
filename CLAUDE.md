@@ -25,7 +25,7 @@ ResumeBar is a macOS menu bar app that lets you browse and resume Claude Code se
 - **Deployment target:** macOS 26.2
 - **Swift concurrency:** `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` and `SWIFT_APPROACHABLE_CONCURRENCY = YES` — all code is MainActor-isolated by default, no need for explicit `@MainActor` annotations
 - **File sync:** Uses `PBXFileSystemSynchronizedRootGroup` — new `.swift` files in `ResumeBar/` are auto-discovered by Xcode (no manual project file edits needed)
-- **Color scheme:** Forces `.preferredColorScheme(.dark)` — dark-only app
+- **Color scheme:** Uses system semantic colors — respects light/dark mode
 
 ### Data Flow
 

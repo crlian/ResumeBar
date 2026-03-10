@@ -38,7 +38,6 @@ struct SettingsView: View {
             .padding(.bottom, Spacing.s)
 
             Divider()
-                .overlay(Theme.border)
 
             // Tab content
             ScrollView {
@@ -114,7 +113,6 @@ private struct SectionHeader: View {
 private struct SectionDivider: View {
     var body: some View {
         Divider()
-            .overlay(Theme.border)
             .padding(.vertical, 16)
     }
 }
@@ -242,21 +240,6 @@ private struct AboutTab: View {
                 )
 
             Spacer()
-
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Text("Quit ResumeBar")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Theme.accent)
-                    )
-            }
-            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

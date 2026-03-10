@@ -44,32 +44,31 @@ struct ProjectDetailView: View {
             }
             .buttonStyle(.plain)
 
-            GradientSeparator()
+            Divider()
 
             if project.totalTokens > 0 {
                 HStack(spacing: 4) {
                     Text("\(project.sessions.count) sessions")
-                    Text("·").foregroundStyle(Theme.accent.opacity(0.4))
+                    Text("·").foregroundStyle(Theme.textTertiary)
                     Text("\(SessionStore.formatTokens(project.totalTokens)) tokens")
                 }
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(Theme.textSecondary.opacity(0.6))
+                .foregroundStyle(Theme.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 4)
                 .padding(.bottom, 8)
             }
 
             if sessions.isEmpty {
-                VStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 32))
-                        .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                        .font(.system(size: 14))
                     Text("No matching sessions")
-                        .foregroundStyle(Theme.textSecondary)
                         .font(Theme.caption)
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 40)
+                .foregroundStyle(Theme.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.l)
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
@@ -93,11 +92,11 @@ struct ProjectDetailView: View {
                 .frame(maxHeight: 440)
             }
 
-            GradientSeparator()
+            Divider()
             HStack {
                 Text("\u{2195} Navigate  \u{2423} Preview  \u{23CE} Resume  \u{238B} Back")
                     .font(Theme.caption)
-                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
+                    .foregroundStyle(Theme.textTertiary)
             }
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)

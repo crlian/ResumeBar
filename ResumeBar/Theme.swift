@@ -21,42 +21,55 @@ extension Color {
 }
 
 enum Theme {
-    // MARK: - Colors (Claude dark palette)
+    // MARK: - Colors (semantic system colors)
 
-    static let background = Color(hex: "#121212")
-    static let surface = Color(hex: "#1C1C1C")
-    static let border = Color(hex: "#2A2A2A")
+    static let background = Color(nsColor: .windowBackgroundColor)
+    static let surface = Color(nsColor: .controlBackgroundColor)
+    static let border = Color(nsColor: .separatorColor)
 
-    static let textPrimary = Color(hex: "#EAEAEA")
-    static let textSecondary = Color(hex: "#A89585")
+    static let textPrimary = Color.primary
+    static let textSecondary = Color.secondary
+    static let textTertiary = Color(nsColor: .tertiaryLabelColor)
+    static let textMuted = Color(nsColor: .quaternaryLabelColor)
 
     static let accent = Color(hex: "#D77757")
     static let accentSubtle = accent.opacity(0.15)
     static let accentGlow = accent.opacity(0.40)
 
-    static let hoverBg = Color(hex: "#1F1F1F")
+    static let hoverBg = Color(nsColor: .selectedContentBackgroundColor).opacity(0.1)
     static let successDot = Color(hex: "#7A9E5C")
 
-    static let cardFill = Color.white.opacity(0.03)
-    static let cardFillHover = Color.white.opacity(0.06)
-    static let cardBorder = Color(hex: "#2A2A2A")
-    static let cardBorderHover = Color.white.opacity(0.10)
+    static let cardFill = Color(nsColor: .controlBackgroundColor).opacity(0.5)
+    static let cardFillHover = Color(nsColor: .controlBackgroundColor)
+    static let cardBorder = Color(nsColor: .separatorColor)
+    static let cardBorderHover = Color(nsColor: .separatorColor).opacity(0.5)
 
-    static let searchBg = Color.white.opacity(0.04)
-    static let searchBorder = Color(hex: "#2A2A2A")
+    static let searchBg = Color(nsColor: .textBackgroundColor).opacity(0.3)
+    static let searchBorder = Color(nsColor: .separatorColor)
     static let chatPreviewBg = Color.white.opacity(0.02)
+
+    // MARK: - Chat Bubble Colors
+
+    static let userBubbleBg = Color(hex: "#3D2218")
+    static let claudeBubbleBg = Color(hex: "#1A1D22")
+    static let claudeBadge = Color(hex: "#9BAED6")
+
+    // MARK: - Diff Colors
+
+    static let diffAdded = Color(hex: "#7A9E5C")
+    static let diffRemoved = Color(hex: "#C75050")
 
     // MARK: - Project Colors
 
     static let projectColors: [Color] = [
-        Color(hex: "#D77757"), // coral
-        Color(hex: "#E8956E"), // coral claro
-        Color(hex: "#B5613F"), // coral oscuro
-        Color(hex: "#C4845A"), // terracota
-        Color(hex: "#E0A882"), // arena
-        Color(hex: "#A37050"), // siena
-        Color(hex: "#D4956B"), // melocotón
-        Color(hex: "#C06A45"), // cobre
+        Color(hex: "#D77757"), // coral (accent)
+        Color(hex: "#C9A84C"), // dorado/ámbar
+        Color(hex: "#7A9E5C"), // verde salvia
+        Color(hex: "#5B9EA6"), // teal
+        Color(hex: "#8B9DC3"), // azul grisáceo
+        Color(hex: "#A67DB8"), // lavanda
+        Color(hex: "#C47878"), // rosa polvoriento
+        Color(hex: "#B5613F"), // terracota
     ]
 
     static func projectColor(for name: String) -> Color {
@@ -95,7 +108,7 @@ enum Theme {
     }
 
     static var overline: Font {
-        .system(size: 10, weight: .semibold, design: .default)
+        .system(size: 11, weight: .semibold, design: .default)
     }
 
     static var messageBody: Font {
@@ -137,14 +150,6 @@ struct HoverModifier: ViewModifier {
             .onHover { hovering in
                 isHovered = hovering
             }
-    }
-}
-
-struct GradientSeparator: View {
-    var body: some View {
-        Rectangle()
-            .fill(Theme.border)
-            .frame(height: 1)
     }
 }
 

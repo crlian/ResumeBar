@@ -27,32 +27,74 @@ struct SessionRowView: View {
     var body: some View {
         HStack(spacing: Spacing.s) {
             VStack(alignment: .leading, spacing: 3) {
-                if let projectName {
-                    Text(projectName)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Theme.accent.opacity(0.7))
-                        .lineLimit(1)
+                // Line 1: title + date
+                HStack {
+                    if isRenaming {
+                        TextField("Session name", text: $renameText)
+                            .textFieldStyle(.plain)
+                            .font(Theme.title)
+                            .foregroundStyle(Theme.textPrimary)
+                            .focused($renameFocused)
+                            .onSubmit { commitRename() }
+                            .onExitCommand { cancelRename() }
+                    } else {
+                        Text(displayTitle)
+                            .font(Theme.title)
+                            .foregroundStyle(Theme.textPrimary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    Text(relativeDate(session.lastActivity))
+                        .font(Theme.caption)
+                        .foregroundStyle(Theme.textTertiary)
                 }
 
-                if isRenaming {
-                    TextField("Session name", text: $renameText)
-                        .textFieldStyle(.plain)
-                        .font(Theme.title)
-                        .foregroundStyle(Theme.textPrimary)
-                        .focused($renameFocused)
-                        .onSubmit { commitRename() }
-                        .onExitCommand { cancelRename() }
-                } else {
-                    Text(displayTitle)
-                        .font(Theme.title)
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(1)
-                }
+                // Line 2: project · tokens · snippet | hover actions
+                HStack(spacing: 4) {
+                    if let projectName {
+                        Text(projectName)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(Theme.textTertiary)
+                            .lineLimit(1)
+                    }
 
-                if let tokens = session.totalTokens, tokens > 0 {
-                    Text("\(SessionStore.formatTokens(tokens)) tokens")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                    if let tokens = session.totalTokens, tokens > 0 {
+                        if projectName != nil {
+                            Text("·")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Theme.textTertiary)
+                        }
+                        Text("\(SessionStore.formatTokens(tokens)) tokens")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(Theme.textTertiary)
+                    }
+
+                    Spacer()
+
+                    if isHovered && !isRenaming {
+                        Button {
+                            onResume()
+                            resumeFeedback = true
+                            Task {
+                                try? await Task.sleep(for: .seconds(1.5))
+                                resumeFeedback = false
+                            }
+                        } label: {
+                            Image(systemName: resumeFeedback ? "checkmark" : "play.fill")
+                                .contentTransition(.symbolEffect(.replace))
+                                .font(.system(size: 10))
+                                .foregroundStyle(.white)
+                                .frame(width: 24, height: 24)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .fill(Theme.accent)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.opacity)
+                    }
                 }
 
                 if let snippet {
@@ -61,36 +103,6 @@ struct SessionRowView: View {
                         .italic()
                         .lineLimit(2)
                 }
-            }
-
-            Spacer()
-
-            if isHovered && !isRenaming {
-                Text(relativeDate(session.lastActivity))
-                    .font(Theme.caption)
-                    .foregroundStyle(Theme.textSecondary)
-                    .transition(.opacity)
-
-                Button {
-                    onResume()
-                    resumeFeedback = true
-                    Task {
-                        try? await Task.sleep(for: .seconds(1.5))
-                        resumeFeedback = false
-                    }
-                } label: {
-                    Image(systemName: resumeFeedback ? "checkmark" : "play.fill")
-                        .contentTransition(.symbolEffect(.replace))
-                        .font(.system(size: 10))
-                        .foregroundStyle(.white)
-                        .frame(width: 24, height: 24)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Theme.accent)
-                        )
-                }
-                .buttonStyle(.plain)
-                .transition(.opacity)
             }
         }
         .padding(.horizontal, Theme.itemH)
@@ -141,11 +153,10 @@ struct SessionRowView: View {
         var remaining = raw[...]
 
         while let openBracket = remaining.firstIndex(of: "[") {
-            // Text before the match
             let before = remaining[remaining.startIndex..<openBracket]
             if !before.isEmpty {
                 result = result + Text(String(before))
-                    .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                    .foregroundStyle(Theme.textTertiary)
             }
 
             let afterOpen = remaining.index(after: openBracket)
@@ -156,16 +167,15 @@ struct SessionRowView: View {
                     .bold()
                 remaining = remaining[remaining.index(after: closeBracket)...]
             } else {
-                // No closing bracket — render rest as plain
                 result = result + Text(String(remaining[openBracket...]))
-                    .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                    .foregroundStyle(Theme.textTertiary)
                 remaining = remaining[remaining.endIndex...]
             }
         }
 
         if !remaining.isEmpty {
             result = result + Text(String(remaining))
-                .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                .foregroundStyle(Theme.textTertiary)
         }
 
         return result

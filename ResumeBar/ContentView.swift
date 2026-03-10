@@ -98,7 +98,6 @@ struct ContentView: View {
         }
         .clipped()
         .frame(width: 380)
-        .preferredColorScheme(.dark)
         .onKeyPress(.escape) {
             switch screen {
             case .sessionChat(_, let project, _):
